@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "plant-health-tracker"
+version = "0.1.0"
+description = ""
+authors = ["martina.roithmeier <maroithmeier@gmail.com>", "vitezslav.slavik <vitezslavik@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.12,<4.0"
+pandas = "^2.2.3"
+sqlalchemy = "^2.0.40"
+flask = "^3.1.0"
+openai = "^1.76.0"
+whatsapp-api-client-python = "^0.0.49"
+aiohttp = {extras = ["speedups"], version = "^3.11.18"}
+python-dotenv = "^1.1.0"
+langchain = "^0.3.25"
+langchain-openai = "^0.3.16"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
