@@ -1,4 +1,5 @@
 import os
+import pytz
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -17,6 +18,10 @@ load_dotenv(dotenv_path=env_file)
 
 OPENAI_API_TOKEN = os.getenv('OPENAI_API_TOKEN')
 MESSANGER_API_TOKEN = os.getenv('MESSANGER_API_TOKEN')
+
+# Telegram API configuration
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_GROUP_CHAT_ID = os.getenv('TELEGRAM_GROUP_CHAT_ID')
 
 DB_HOST = os.getenv('DB_HOST')
 DB_NAME = os.getenv('DB_NAME')
