@@ -7,7 +7,7 @@ import pytz
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from plant_health_tracker.config.base import TIMEZONE
+from plant_health_tracker.config.base import TIMEZONE, DEVELOPMENT_MODE
 
 Base = declarative_base()
 
@@ -43,6 +43,15 @@ class SensorDataDB(Base):
         Returns:
             Latest sensor reading for the plant if found, else None
         """
+        if DEVELOPMENT_MODE:
+            # For development purposes, return a mock reading
+            return SensorData(
+                id=1,
+                moisture=20.0,
+                temperature=15.0,
+                plant_id=plant_id,
+                created_at=datetime.now(TIMEZONE)
+            )
         try:
             result = db_session.query(cls)\
                 .filter(cls.plant_id == plant_id)\
@@ -78,23 +87,23 @@ class SensorDataDB(Base):
                 
             try:
                 df = pd.DataFrame([{
-                    'date': reading.created_at,
+                    'created_at': reading.created_at,
                     'moisture': reading.moisture,
                     'temperature': reading.temperature
                 } for reading in readings])
                 
-                df['date'] = df['date'].dt.date
-                result = df.groupby('date').agg({
+                df['created_at'] = df['created_at'].dt.date
+                result = df.groupby('created_at').agg({
                     'moisture': ['first'],
                     'temperature': ['first']
                 }).reset_index()
                 return result
             except (AttributeError, ValueError, KeyError) as e:
                 print(f"Error processing sensor data: {e}")
-                return pd.DataFrame(columns=['date', 'moisture', 'temperature'])
+                return pd.DataFrame(columns=['created_at', 'moisture', 'temperature'])
                 
         except Exception as e:
             print(f"Error retrieving historical readings: {e}")
-            return pd.DataFrame(columns=['date', 'moisture', 'temperature'])
+            return pd.DataFrame(columns=['created_at', 'moisture', 'temperature'])
 
 

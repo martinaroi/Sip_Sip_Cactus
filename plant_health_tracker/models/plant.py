@@ -46,8 +46,10 @@ class PlantDB(Base):
             result = db_session.query(self).filter(self.id == id).first()
             if result:
                 return Plant.model_validate(result)
+            return None
         except Exception as e:
             print(f"Error retrieving plant with ID {id}: {e}")
+            return None
 
 
-        
+
