@@ -68,7 +68,7 @@ class PlantTelegramBot:
         if not TELEGRAM_BOT_TOKEN:
             raise ValueError("Telegram bot token is required. Provide it as an argument or set the TELEGRAM_BOT_TOKEN environment variable.")
 
-        self.plant_chatbot = plant_chatbot
+        self.plant_chatbot: PlantChatbot = plant_chatbot
         
         # Setup logging
         self.logger = logging.getLogger("PlantTelegramBot")
@@ -90,7 +90,21 @@ class PlantTelegramBot:
         self.conversation_history = defaultdict(lambda: {"messages": [], "last_active": 0})
         self.last_message_time = defaultdict(int)
         
-    async def send_plant_message(
+    def _register_plants(self, plants: List[Plant]) -> None:
+        """
+        Register plants with the bot.
+        
+        Args:
+            plants (List[Plant]): List of plants to register
+        """
+        if not plants:
+            self.logger.warning("No plants provided for registration")
+            return
+        self.application.bot_data['plants'].extend(plants)
+        self.logger.info(f"Registered {len(plants)} plants. Total plants in bot_data: {len(self.application.bot_data['plants'])}")
+        self.logger.debug(f"Plants in bot_data: {self.application.bot_data['plants']}")
+        
+    async def send_message(
         self, 
         message: str, 
         plant_name: Optional[str] = None,
@@ -112,21 +126,18 @@ class PlantTelegramBot:
             
         if not chat_id:
             self.logger.error("No chat ID specified for sending message")
-            return False
-        
-        # Escape the message and plant name for MarkdownV2
+            return False        
         safe_message = escape_markdown_v2(message)
         if plant_name:
             safe_plant_name = escape_markdown_v2(plant_name)
             formatted_message = f"🌱 *{safe_plant_name}*: \n{safe_message}"
-            
         for attempt in range(self.MAX_RETRIES):
             try:
                 await self.bot.send_message(
                     chat_id=chat_id,
                     text=formatted_message,
                     write_timeout=self.API_TIMEOUT,
-                    parse_mode='MarkdownV2'
+                    parse_mode=self.DEFAULT_PARSE_MODE,
                 )
                 self.logger.info(f"Message sent successfully to chat {chat_id}")
                 return True
@@ -136,7 +147,113 @@ class PlantTelegramBot:
                     await asyncio.sleep(self.RETRY_DELAY)
                 else:
                     return False
+             
+    def _get_plants(self) -> List[Plant]:
+        """
+        Retrieve the list of plants registered with the bot.
+
+        Returns:
+            List[Plant]: List of registered plants
+        """
+        # plants = self.application.bot_data.get('plants', [])
+        plant_A = PlantDB().get_plant(None,id=1)
+        plant_B = PlantDB().get_plant(None,id=2)
+        plants = [plant_A, plant_B]
+        if not plants:
+            self.logger.warning("No plants found in bot data")
+            return []
+        return plants
+    
+    async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        from plant_health_tracker.utils.telegram import preprocess_string
+        chat_id = update.effective_chat.id
+        user_message = preprocess_string()
+        user_name = update.message.from_user.first_name
         
+        # Mocks
+        user_name = "Vita"
+        user_message = preprocess_string("You are doing such a great job Vendula, keep it up! Not like Bobes")
+        
+        # Security check: only allow messages from the specified chat ID
+        if chat_id != self.TELEGRAM_CHAT_ID:
+            self.logger.warning(f"Received message from unauthorized chat ID: {chat_id}")
+            return
+        self.logger.info(f"Received message from {user_name}: {user_message}")
+        
+        plants = self._get_plants()    
+        
+        # Check if message mentions any plants, take the first mentioned one
+        mentioned_plants = [(plant, user_message.lower().find(preprocess_string(plant.name.lower()))) 
+                   for plant in plants if preprocess_string(plant.name) in user_message]
+        if mentioned_plants: # First mentioned plant is the target
+            mentioned_plants.sort(key=lambda x: x[1])
+            target_plant = mentioned_plants[0][0]
+            self.logger.info(f"Message directed to plant: {target_plant.name}")
+        else:
+            self.logger.info("No plants mentioned in the message")
+            target_plant = None
+        
+        # Send response to the user
+        if target_plant:
+            self.logger.info(f"Message from {user_name} to {target_plant.name}: {user_message}")
+            # Get sensor data for the plant
+            from plant_health_tracker.models.sensor_data import SensorDataDB
+            sensor_data = SensorDataDB.get_latest_reading(target_plant.id)
+            try:
+                plant_history = self._get_conversation_history(target_plant.id)
+                response = self.plant_chatbot.get_chat_response(
+                    user_input=user_message,
+                    plant=target_plant,
+                    conversation_history=plant_history,
+                    user=user_name,
+                    sensor_data=sensor_data
+                )
+                self._add_to_conversation_history(
+                    plant_id=target_plant.id,
+                    message=f"{target_plant.name}: {response}"
+                )
+                await self.send_plant_message(
+                    message=response,
+                    chat_id=chat_id,
+                    plant_name=target_plant.name
+                )
+            except Exception as e:
+                self.logger.error(f"Error generating plant response: {e}")
+                await update.message.reply_text(f"Sorry, {target_plant.name} is having trouble communicating right now.")
+        else:
+            await update.message.reply_text("The garden is big, to what plant are you talking ? Mention their name in your message.")
+            
+    def _add_to_conversation_history(self, plant_id: int, message: str) -> None:
+        """
+        Add a message to the conversation history for a specific plant.
+        
+        Args:
+            plant_id (int): ID of the plant
+            message (str): Message to add to the history
+        """
+        now = time.time()
+        self.conversation_history[plant_id]["last_active"] = now
+        self.conversation_history[plant_id]["messages"].append(message)
+        if len(self.conversation_history[plant_id]["messages"]) > self.CONVERSATION_MAX_LENGTH:
+            self.conversation_history[plant_id]["messages"].pop(0)
+        
+    def _get_conversation_history(self, plant_id: int) -> List[str]:
+        """
+        Get the conversation history for a specific plant.
+        
+        Args:
+            plant_id (int): ID of the plant
+            
+        Returns:
+            List[str]: List of conversation messages
+        """
+        now = time.time()
+        conversation_data = self.conversation_history.get(plant_id, {"messages": [], "last_active": 0})
+        if now - conversation_data["last_active"] > self.CONVERSATION_EXPIRY_TIME:
+            self.conversation_history[plant_id]["messages"] = []
+            self.conversation_history[plant_id]["last_active"] = now
+        return self.conversation_history[plant_id]["messages"]
+
 if __name__ == "__main__":
     # Example usage
     async def main():
@@ -144,10 +261,10 @@ if __name__ == "__main__":
         plant_bot.logger.info("Plant Telegram Bot initialized")
         
         # Send a simple test message
-        # await plant_bot.send_plant_message(message="Hello, I am your plant monitor!")
+        # await plant_bot.send_message(message="Hello, I am your plant monitor!")
         
         # Send a message from a specific plant
-        await plant_bot.send_plant_message(
+        await plant_bot.send_message(
             message="I'm feeling a bit dry today. Could I get some water?",
             plant_name="Bob the Cactus",
         )

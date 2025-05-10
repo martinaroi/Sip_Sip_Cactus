@@ -46,7 +46,7 @@ class PlantDB(Base):
         """
         if DEVELOPMENT_MODE:
             from ..mock.plant_data import MockPlantDB
-            return MockPlantDB.get_plant(db_session, id)
+            return MockPlantDB().get_plant(db_session, id)
         try:
             result = db_session.query(self).filter(self.id == id).first()
             if result:
