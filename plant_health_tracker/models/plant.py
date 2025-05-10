@@ -3,6 +3,8 @@ from sqlalchemy.orm import declarative_base
 from pydantic import BaseModel, Field
 from typing import Optional
 
+from plant_health_tracker.config.base import DEVELOPMENT_MODE
+
 Base = declarative_base()
 
 class Plant(BaseModel):
@@ -42,6 +44,9 @@ class PlantDB(Base):
         Returns:
             Optional[Plant]: Plant object if found, else None
         """
+        if DEVELOPMENT_MODE:
+            from ..mock.plant_data import MockPlantDB
+            return MockPlantDB.get_plant(db_session, id)
         try:
             result = db_session.query(self).filter(self.id == id).first()
             if result:

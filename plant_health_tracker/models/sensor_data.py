@@ -45,13 +45,8 @@ class SensorDataDB(Base):
         """
         if DEVELOPMENT_MODE:
             # For development purposes, return a mock reading
-            return SensorData(
-                id=1,
-                moisture=20.0,
-                temperature=15.0,
-                plant_id=plant_id,
-                created_at=datetime.now(TIMEZONE)
-            )
+            from ..mock.sensor_data import MockSensorDataDB
+            return MockSensorDataDB.get_latest_reading(db_session, plant_id)
         try:
             result = db_session.query(cls)\
                 .filter(cls.plant_id == plant_id)\
@@ -72,6 +67,10 @@ class SensorDataDB(Base):
         Returns:
             DataFrame containing historical sensor readings with date, moisture, and temperature
         """
+        if DEVELOPMENT_MODE:
+            # For development purposes, return a mock reading
+            from ..mock.sensor_data import MockSensorDataDB
+            return MockSensorDataDB.get_historical_readings(db_session, plant_id, last_n_days)
         try:
             lookback = datetime.utcnow() - timedelta(days=last_n_days)
             readings = db_session.query(cls)\
