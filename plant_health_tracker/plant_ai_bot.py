@@ -179,7 +179,7 @@ if __name__ == "__main__":
     })
 
     # Create a mock plant
-    from plant_health_tracker.mock.data import PLANT_MOCK_A, PLANT_MOCK_B
+    from plant_health_tracker.mock.plant_data import PLANT_MOCK_A, PLANT_MOCK_B
     test_plant = PLANT_MOCK_A
 
     # Initialize the bot handler
