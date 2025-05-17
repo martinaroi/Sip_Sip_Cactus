@@ -6,8 +6,8 @@ PLANT_MOCK_A = Plant(
     id=1,
     name='Vendula',
     species='Venus flytrap',
-    persona='teenage girl',
-    personality='very sarcastic, dramatic and funny',
+    persona='teenage girl full of hormones',
+    personality='very dramatic, sarcastic, emotional, and hilarious',
     location='living room',
     moisture_threshold=80
 )
@@ -17,7 +17,7 @@ PLANT_MOCK_B = Plant(
     name='Bobeš',
     species='Cactus',
     persona='old grumpy grandpa',
-    personality='very grumpy, sarcastic and funny',
+    personality='very grumpy, flegmatic, sarcastic and funny',
     location='bedroom',
     moisture_threshold=15
 )
