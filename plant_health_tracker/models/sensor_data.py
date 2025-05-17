@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, func
+from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import desc
 from datetime import datetime, timedelta, timezone
@@ -8,8 +8,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 from plant_health_tracker.config.base import TIMEZONE, DEVELOPMENT_MODE
-
-Base = declarative_base()
+from plant_health_tracker.db.database import Base
 
 class SensorData(BaseModel):
     id: int = Field(..., title="Reading ID")
@@ -31,8 +30,11 @@ class SensorDataDB(Base):
     id = Column(Integer, primary_key=True, index=True)
     moisture = Column(Float, nullable=False)
     temperature = Column(Float, nullable=False)
-    plant_id = Column(Integer, ForeignKey("plants.id"), nullable=False)
+    plant_id = Column(Integer, ForeignKey("plants.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime, default=datetime.now(TIMEZONE), nullable=False)
+
+    # Add relationship
+    plant = relationship("PlantDB", back_populates="sensor_readings")
 
     @classmethod
     def get_latest_reading(cls, db_session, plant_id: int) -> Optional[SensorData]:

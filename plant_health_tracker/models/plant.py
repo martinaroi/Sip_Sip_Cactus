@@ -1,11 +1,10 @@
 from sqlalchemy import Column, Integer, String
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, relationship
 from pydantic import BaseModel, Field
 from typing import Optional
 
 from plant_health_tracker.config.base import DEVELOPMENT_MODE
-
-Base = declarative_base()
+from plant_health_tracker.db.database import Base
 
 class Plant(BaseModel):
     id: int = Field(..., title="Plant ID", description="Unique identifier for the plant")
@@ -30,6 +29,9 @@ class PlantDB(Base):
     personality = Column(String, nullable=False, default='cheerful, energetic, motivational')
     location = Column(String, nullable=True, default='living room')
     moisture_threshold = Column(Integer, nullable=True, default=50)
+
+    # Add relationship
+    sensor_readings = relationship("SensorDataDB", back_populates="plant", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Plant(id={self.id}, name='{self.name}', species='{self.species}')>"
