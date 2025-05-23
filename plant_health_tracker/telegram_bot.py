@@ -155,10 +155,13 @@ class PlantTelegramBot:
         Returns:
             List[Plant]: List of registered plants
         """
-        # plants = self.application.bot_data.get('plants', [])
-        plant_A = PlantDB().get_plant(None,id=1)
-        plant_B = PlantDB().get_plant(None,id=2)
-        plants = [plant_A, plant_B]
+        # Instead of incorrectly instantiating PlantDB, use mock data directly
+        from plant_health_tracker.models import PlantDB
+        from plant_health_tracker.db import DatabaseConnection
+        db = DatabaseConnection()
+        session = db.get_session()
+        plants = PlantDB.get_plant_list(session)
+        
         if not plants:
             self.logger.warning("No plants found in bot data")
             return []
@@ -255,17 +258,37 @@ class PlantTelegramBot:
         return self.conversation_history[plant_id]["messages"]
 
 if __name__ == "__main__":
-    # Example usage
-    async def main():
-        plant_bot = PlantTelegramBot()
-        plant_bot.logger.info("Plant Telegram Bot initialized")
+    # # Example usage
+    # async def main():
+    #     plant_bot = PlantTelegramBot()
+    #     plant_bot.logger.info("Plant Telegram Bot initialized")
         
-        # Send a simple test message
-        # await plant_bot.send_message(message="Hello, I am your plant monitor!")
+    #     # Send a simple test message
+    #     # await plant_bot.send_message(message="Hello, I am your plant monitor!")
         
-        # Send a message from a specific plant
-        await plant_bot.send_message(
-            message="I'm feeling a bit dry today. Could I get some water?",
-            plant_name="Bob the Cactus",
-        )
-    asyncio.run(main())
+    #     # Send a message from a specific plant
+    #     await plant_bot.send_message(
+    #         message="I'm feeling a bit dry today. Could I get some water?",
+    #         plant_name="Bob the Cactus",
+    #     )
+    # asyncio.run(main())
+        
+
+    from plant_health_tracker.models import PlantDB, SensorDataDB
+
+    plant = PlantDB.get_plant(1)  # Replace with the actual plant ID you want to test    
+    print(plant)
+    sensor_data = SensorDataDB.get_latest_reading(plant.id)
+    print(sensor_data)
+
+    from plant_health_tracker.plant_ai_bot import PlantChatbot
+    plant_bot = PlantChatbot()
+    plant_message = plant_bot.get_daily_notification(plant, sensor_data=sensor_data)
+    print(plant_message)
+    # Run async telegram message in console
+    telegram = PlantTelegramBot()
+    asyncio.run(telegram.send_message(
+        message=plant_message,
+        plant_name=plant.name,
+        chat_id=TELEGRAM_GROUP_CHAT_ID
+    ))
