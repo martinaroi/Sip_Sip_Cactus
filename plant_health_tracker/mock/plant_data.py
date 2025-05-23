@@ -23,7 +23,7 @@ PLANT_MOCK_B = Plant(
 )
 
 class MockPlantDB:
-    def get_plant(self, db_session, id) -> Plant:
+    def get_plant(self, id) -> Plant:
         """Retrieves a plant by its ID from the database.
         
         Args:
@@ -39,3 +39,17 @@ class MockPlantDB:
             return PLANT_MOCK_B
         else:
             return None
+        
+    def get_plant_list(self) -> list[dict]:
+        """Retrieves all plants' IDs and names from the database.
+        
+        Args:
+            db_session: SQLAlchemy session object
+        
+        Returns:
+            list[dict]: List of dictionaries containing plant IDs and names
+        """
+        return [
+            {"id": PLANT_MOCK_A.id, "name": PLANT_MOCK_A.name},
+            {"id": PLANT_MOCK_B.id, "name": PLANT_MOCK_B.name}
+        ]

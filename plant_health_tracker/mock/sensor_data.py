@@ -6,8 +6,8 @@ from ..models.sensor_data import SensorData
 # Adding sensor data mocks to match SensorData model
 SENSOR_DATA_MOCK_A = SensorData(
     id=1,
-    moisture=75.5,
-    temperature=22.3,
+    moisture=10.5,
+    temperature=50.3,
     plant_id=1,
     created_at=datetime.now(TIMEZONE)
 )
@@ -27,7 +27,7 @@ class MockSensorDataDB():
     """
 
     @classmethod
-    def get_latest_reading(cls, db_session, plant_id: int):
+    def get_latest_reading(cls, plant_id: int):
         from ..models.sensor_data import SensorData
         if plant_id == 1:
             # For development purposes, return a mock reading
@@ -42,7 +42,7 @@ class MockSensorDataDB():
         
 
     @classmethod
-    def get_historical_readings(cls, db_session, plant_id: int, last_n_days: int = 7) -> pd.DataFrame:
+    def get_historical_readings(cls, plant_id: int, last_n_days: int = 7) -> pd.DataFrame:
         """Retrieves historical sensor readings for a given plant over the last n days.
         Args:
             db_session: SQLAlchemy session object

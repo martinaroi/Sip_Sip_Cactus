@@ -35,6 +35,16 @@ def populate_initial_data(db_session) -> Optional[Exception]:
         db_session.add_all(plants)
         db_session.commit()
         logger.info("Successfully populated database with initial data")
+        
+        from plant_health_tracker.mock.sensor_data import SENSOR_DATA_MOCK_A, SENSOR_DATA_MOCK_B
+        sensor_data = [
+            SensorDataDB(**SENSOR_DATA_MOCK_A.model_dump()),
+            SensorDataDB(**SENSOR_DATA_MOCK_B.model_dump())
+        ]
+        db_session.add_all(sensor_data)
+        db_session.commit()
+        logger.info("Successfully populated database with initial sensor data")
+        
         return None
 
     except Exception as e:

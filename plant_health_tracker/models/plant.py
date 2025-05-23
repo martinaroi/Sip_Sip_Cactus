@@ -54,7 +54,7 @@ class PlantDB(Base):
         """
         if USE_MOCKS:
             from plant_health_tracker.mock.plant_data import MockPlantDB
-            return MockPlantDB().get_plant(db_session, id)
+            return MockPlantDB().get_plant(id)
         try:
             from plant_health_tracker.db import DatabaseConnection
             db = DatabaseConnection()
@@ -79,7 +79,7 @@ class PlantDB(Base):
         """
         if USE_MOCKS:
             from plant_health_tracker.mock.plant_data import MockPlantDB
-            return MockPlantDB().get_plant_list(db_session)
+            return MockPlantDB().get_plant_list()
         try:
             from plant_health_tracker.db import DatabaseConnection
             db = DatabaseConnection()

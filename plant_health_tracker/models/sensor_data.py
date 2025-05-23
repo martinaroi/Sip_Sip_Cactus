@@ -6,10 +6,14 @@ import pandas as pd
 import pytz
 from pydantic import BaseModel, Field
 from typing import Optional
+import logging
 
 from plant_health_tracker.config.base import TIMEZONE, DEVELOPMENT_MODE, USE_MOCKS
 from plant_health_tracker.models.base import Base
 
+USE_MOCKS = False # TODO: Remove this line when not using mocks
+
+logger = logging.getLogger(__name__)
 
 class SensorData(BaseModel):
     id: int = Field(..., title="Reading ID")
@@ -39,7 +43,7 @@ class SensorDataDB(Base):
     plant = relationship("plant_health_tracker.models.plant.PlantDB", back_populates="sensor_readings")
 
     @classmethod
-    def get_latest_reading(cls, db_session, plant_id: int) -> Optional[SensorData]:
+    def get_latest_reading(cls, plant_id: int) -> Optional[SensorData]:
         """Retrieves the latest sensor reading for a given plant.
         Args:
             db_session: SQLAlchemy session object
@@ -48,10 +52,13 @@ class SensorDataDB(Base):
             Latest sensor reading for the plant if found, else None
         """
         if USE_MOCKS:
+            logger.info(f"Using mock sensor data for plant {plant_id}")
             # For development purposes, return a mock reading
             from plant_health_tracker.mock.sensor_data import MockSensorDataDB
-            return MockSensorDataDB.get_latest_reading(db_session, plant_id)
+            return MockSensorDataDB.get_latest_reading(plant_id)
         try:
+            from plant_health_tracker.db import DatabaseConnection
+            db_session = DatabaseConnection().get_session()
             result = db_session.query(cls)\
                 .filter(cls.plant_id == plant_id)\
                 .order_by(desc(cls.created_at))\
@@ -62,7 +69,7 @@ class SensorDataDB(Base):
             print(f"Error retrieving latest reading for plant {plant_id}: {e}")
 
     @classmethod
-    def get_historical_readings(cls, db_session, plant_id: int, last_n_days: int = 7) -> pd.DataFrame:
+    def get_historical_readings(cls, plant_id: int, last_n_days: int = 7) -> pd.DataFrame:
         """Retrieves historical sensor readings for a given plant over the last n days.
         Args:
             db_session: SQLAlchemy session object
@@ -72,10 +79,13 @@ class SensorDataDB(Base):
             DataFrame containing historical sensor readings with date, moisture, and temperature
         """
         if USE_MOCKS:
+            logger.info(f"Using mock sensor data for plant {plant_id}")
             # For development purposes, return a mock reading
             from plant_health_tracker.mock.sensor_data import MockSensorDataDB
-            return MockSensorDataDB.get_historical_readings(db_session, plant_id, last_n_days)
+            return MockSensorDataDB.get_historical_readings(plant_id, last_n_days)
         try:
+            from plant_health_tracker.db import DatabaseConnection
+            db_session = DatabaseConnection().get_session()
             lookback = datetime.utcnow() - timedelta(days=last_n_days)
             readings = db_session.query(cls)\
                 .filter(
