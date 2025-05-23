@@ -13,12 +13,6 @@ from plant_health_tracker.config.base import (
     DB_PASSWORD,
 )
 
-from sqlalchemy.ext.declarative import declarative_base
-
-# Create the declarative base with a meaningful name
-Base = declarative_base(name="PlantHealthBase")
-
-
 class DatabaseConnection:
     """Singleton class for managing database connections."""
     

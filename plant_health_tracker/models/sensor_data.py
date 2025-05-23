@@ -8,7 +8,8 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 from plant_health_tracker.config.base import TIMEZONE, DEVELOPMENT_MODE
-from plant_health_tracker.db.database import Base
+from plant_health_tracker.models.base import Base
+
 
 class SensorData(BaseModel):
     id: int = Field(..., title="Reading ID")
@@ -26,6 +27,7 @@ class SensorDataDB(Base):
     It is linked to the Plant model through a foreign key relationship.
     """
     __tablename__ = "sensor_data"
+    # __module__ = "plant_health_tracker.models.sensor_data"
 
     id = Column(Integer, primary_key=True, index=True)
     moisture = Column(Float, nullable=False)
@@ -33,8 +35,8 @@ class SensorDataDB(Base):
     plant_id = Column(Integer, ForeignKey("plants.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime, default=datetime.now(TIMEZONE), nullable=False)
 
-    # Add relationship
-    plant = relationship("PlantDB", back_populates="sensor_readings")
+    # Update relationship to use fully qualified string reference
+    plant = relationship("plant_health_tracker.models.plant.PlantDB", back_populates="sensor_readings")
 
     @classmethod
     def get_latest_reading(cls, db_session, plant_id: int) -> Optional[SensorData]:

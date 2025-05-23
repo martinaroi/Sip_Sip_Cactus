@@ -2,7 +2,8 @@ import logging
 from typing import Optional
 from sqlalchemy import inspect
 
-from plant_health_tracker.db.database import DatabaseConnection, Base
+from plant_health_tracker.db.database import DatabaseConnection
+from plant_health_tracker.models.base import Base
 from plant_health_tracker.models.plant import PlantDB
 from plant_health_tracker.models.sensor_data import SensorDataDB
 from plant_health_tracker.mock.plant_data import PLANT_MOCK_A, PLANT_MOCK_B

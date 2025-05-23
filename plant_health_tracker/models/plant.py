@@ -1,11 +1,12 @@
 from sqlalchemy import Column, Integer, String
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import relationship
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, ClassVar
+import logging
 
 from plant_health_tracker.config.base import DEVELOPMENT_MODE
-from plant_health_tracker.db.database import Base
-
+from plant_health_tracker.models.base import Base
+DEVELOPMENT_MODE=False
 class Plant(BaseModel):
     id: int = Field(..., title="Plant ID", description="Unique identifier for the plant")
     name: str = Field(..., title="Plant Name", description="Name of the plant")
@@ -21,6 +22,10 @@ class Plant(BaseModel):
 class PlantDB(Base):
     """Database model for plants."""
     __tablename__ = "plants"
+    __table_args__ = {'extend_existing': True}
+    
+    # Set module name explicitly to avoid registry conflicts
+    __module__ = "plant_health_tracker.models.plant"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
@@ -30,13 +35,15 @@ class PlantDB(Base):
     location = Column(String, nullable=True, default='living room')
     moisture_threshold = Column(Integer, nullable=True, default=50)
 
-    # Add relationship
-    sensor_readings = relationship("SensorDataDB", back_populates="plant", cascade="all, delete-orphan")
+    # Update relationship to use fully qualified string reference
+    sensor_readings = relationship("plant_health_tracker.models.sensor_data.SensorDataDB", back_populates="plant", 
+                                 cascade="all, delete-orphan", lazy="dynamic")
 
     def __repr__(self):
         return f"<Plant(id={self.id}, name='{self.name}', species='{self.species}')>"
     
-    def get_plant(self, db_session, id) -> Optional[Plant]:
+    @classmethod
+    def get_plant(cls, db_session, id) -> Optional[Plant]:
         """Retrieves a plant by its ID from the database.
 
         Args:
@@ -50,7 +57,7 @@ class PlantDB(Base):
             from ..mock.plant_data import MockPlantDB
             return MockPlantDB().get_plant(db_session, id)
         try:
-            result = db_session.query(self).filter(self.id == id).first()
+            result = db_session.query(cls).filter(cls.id == id).first()
             if result:
                 return Plant.model_validate(result)
             return None
@@ -58,5 +65,24 @@ class PlantDB(Base):
             print(f"Error retrieving plant with ID {id}: {e}")
             return None
 
+    @classmethod
+    def get_plant_list(cls, db_session) -> list[dict]:
+        """Retrieves all plants' IDs and names from the database.
+
+        Args:
+            db_session: SQLAlchemy session object
+
+        Returns:
+            list[dict]: List of dictionaries containing plant IDs and names
+        """
+        if DEVELOPMENT_MODE:
+            from ..mock.plant_data import MockPlantDB
+            return MockPlantDB().get_plant_list(db_session)
+        try:
+            results = db_session.query(PlantDB.id, PlantDB.name).all()
+            return [{"id": result.id, "name": result.name} for result in results]
+        except Exception as e:
+            print(f"Error retrieving plants: {e}")
+            return []
 
 
