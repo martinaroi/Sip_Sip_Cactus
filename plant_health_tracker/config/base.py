@@ -5,6 +5,7 @@ from pathlib import Path
 
 
 DEVELOPMENT_MODE = True
+USE_MOCKS = False
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 PACKAGE_DIR = Path(__file__).resolve().parent.parent
 

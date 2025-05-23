@@ -4,9 +4,8 @@ from pydantic import BaseModel, Field
 from typing import Optional, ClassVar
 import logging
 
-from plant_health_tracker.config.base import DEVELOPMENT_MODE
+from plant_health_tracker.config.base import USE_MOCKS
 from plant_health_tracker.models.base import Base
-DEVELOPMENT_MODE=False
 class Plant(BaseModel):
     id: int = Field(..., title="Plant ID", description="Unique identifier for the plant")
     name: str = Field(..., title="Plant Name", description="Name of the plant")
@@ -43,7 +42,7 @@ class PlantDB(Base):
         return f"<Plant(id={self.id}, name='{self.name}', species='{self.species}')>"
     
     @classmethod
-    def get_plant(cls, db_session, id) -> Optional[Plant]:
+    def get_plant(cls, id) -> Optional[Plant]:
         """Retrieves a plant by its ID from the database.
 
         Args:
@@ -53,10 +52,13 @@ class PlantDB(Base):
         Returns:
             Optional[Plant]: Plant object if found, else None
         """
-        if DEVELOPMENT_MODE:
-            from ..mock.plant_data import MockPlantDB
+        if USE_MOCKS:
+            from plant_health_tracker.mock.plant_data import MockPlantDB
             return MockPlantDB().get_plant(db_session, id)
         try:
+            from plant_health_tracker.db import DatabaseConnection
+            db = DatabaseConnection()
+            db_session = db.get_session()
             result = db_session.query(cls).filter(cls.id == id).first()
             if result:
                 return Plant.model_validate(result)
@@ -66,7 +68,7 @@ class PlantDB(Base):
             return None
 
     @classmethod
-    def get_plant_list(cls, db_session) -> list[dict]:
+    def get_plant_list(cls) -> list[dict]:
         """Retrieves all plants' IDs and names from the database.
 
         Args:
@@ -75,10 +77,13 @@ class PlantDB(Base):
         Returns:
             list[dict]: List of dictionaries containing plant IDs and names
         """
-        if DEVELOPMENT_MODE:
-            from ..mock.plant_data import MockPlantDB
+        if USE_MOCKS:
+            from plant_health_tracker.mock.plant_data import MockPlantDB
             return MockPlantDB().get_plant_list(db_session)
         try:
+            from plant_health_tracker.db import DatabaseConnection
+            db = DatabaseConnection()
+            db_session = db.get_session()
             results = db_session.query(PlantDB.id, PlantDB.name).all()
             return [{"id": result.id, "name": result.name} for result in results]
         except Exception as e:

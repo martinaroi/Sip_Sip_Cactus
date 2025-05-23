@@ -15,13 +15,13 @@ logger = logging.getLogger(__name__)
 from plant_health_tracker.db.database import DatabaseConnection
 db = DatabaseConnection()
 session = db.get_session()
-plants = PlantDB.get_plant_list(session)
+plants = PlantDB.get_plant_list()
 logger.info(f"Found {len(plants)} plants:")
 for plant in plants:
     logger.info(plant)
 
 # Get Plant with ID 1
-plant = PlantDB.get_plant(session, 1)
+plant = PlantDB.get_plant(1)
 logger.info(f"Found plant with ID 1: {plant}")
 logger.info(f"Found plant with ID 1: {plant.name}")
 

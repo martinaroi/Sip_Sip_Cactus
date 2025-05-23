@@ -7,7 +7,7 @@ import pytz
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from plant_health_tracker.config.base import TIMEZONE, DEVELOPMENT_MODE
+from plant_health_tracker.config.base import TIMEZONE, DEVELOPMENT_MODE, USE_MOCKS
 from plant_health_tracker.models.base import Base
 
 
@@ -47,9 +47,9 @@ class SensorDataDB(Base):
         Returns:
             Latest sensor reading for the plant if found, else None
         """
-        if DEVELOPMENT_MODE:
+        if USE_MOCKS:
             # For development purposes, return a mock reading
-            from ..mock.sensor_data import MockSensorDataDB
+            from plant_health_tracker.mock.sensor_data import MockSensorDataDB
             return MockSensorDataDB.get_latest_reading(db_session, plant_id)
         try:
             result = db_session.query(cls)\
@@ -71,9 +71,9 @@ class SensorDataDB(Base):
         Returns:
             DataFrame containing historical sensor readings with date, moisture, and temperature
         """
-        if DEVELOPMENT_MODE:
+        if USE_MOCKS:
             # For development purposes, return a mock reading
-            from ..mock.sensor_data import MockSensorDataDB
+            from plant_health_tracker.mock.sensor_data import MockSensorDataDB
             return MockSensorDataDB.get_historical_readings(db_session, plant_id, last_n_days)
         try:
             lookback = datetime.utcnow() - timedelta(days=last_n_days)
