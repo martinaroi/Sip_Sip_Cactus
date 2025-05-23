@@ -6,7 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTempla
 from langchain.chains import LLMChain
 from langchain_core.output_parsers import StrOutputParser
 from plant_health_tracker.config.base import OPENAI_API_TOKEN
-from plant_health_tracker.models.plant import Plant
+from plant_health_tracker.models import Plant,SensorData
 
 
 class PlantChatbot:
@@ -24,7 +24,7 @@ class PlantChatbot:
         model (ChatOpenAI): Instance of ChatOpenAI for language generation
     """
 
-    RESPONSE_MAX_WORDS = 75
+    RESPONSE_MAX_WORDS = 60
     MODEL_NAME = "gpt-4o-mini"
     
     def __init__(
@@ -92,7 +92,7 @@ class PlantChatbot:
             HumanMessagePromptTemplate.from_template("{user}: {user_input}")
         ])
         
-    def _get_sensor_context(self, sensor_data: Optional[pd.DataFrame] = None, moisture_threshold:int = None) -> str:
+    def _get_sensor_context(self, sensor_data: Optional[pd.DataFrame | SensorData] = None, moisture_threshold:int = None) -> str:
         """
         Formats sensor data into a string context for the prompts.
 
@@ -103,21 +103,21 @@ class PlantChatbot:
         Returns:
             str: Formatted string containing sensor data and thresholds
         """
-        if sensor_data is not None and not sensor_data.empty:
+        if sensor_data is not None or (isinstance(sensor_data, pd.DataFrame) and not sensor_data.empty):
             sensor_prompt_template = f"""
             Here is most recent sensor data on how you are doing:
-            {sensor_data.to_string(index=False)}
+            {repr(sensor_data)}
             
             Legend:
             - Moisture in percentage
-            - Temperature in Celsius.
+            - Temperature is in Celsius.
             """
             if moisture_threshold is not None:
                 sensor_prompt_template += f"\nYour ideal moisture is {moisture_threshold}."
             return sensor_prompt_template
         return ""
         
-    def get_daily_notification(self, plant: Plant, sensor_data: pd.DataFrame) -> str:
+    def get_daily_notification(self, plant: Plant, sensor_data: pd.DataFrame | SensorData) -> str:
         """
         Generates a daily status update from the plant's perspective.
 
