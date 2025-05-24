@@ -28,7 +28,6 @@ A comprehensive Python project for monitoring plant health using IoT sensors on 
 - [LangChain](https://langchain.com/) & OpenAI for conversational AI
 - [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) for notifications
 - PostgreSQL for data persistence
-- Docker & Docker Compose for containerization
 
 ## Prerequisites
 
