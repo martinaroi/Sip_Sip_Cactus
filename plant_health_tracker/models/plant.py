@@ -68,7 +68,7 @@ class PlantDB(Base):
             return None
 
     @classmethod
-    def get_plant_list(cls) -> list[dict]:
+    def get_plant_list(cls) -> list[Plant]:
         """Retrieves all plants' IDs and names from the database.
 
         Args:
@@ -84,8 +84,8 @@ class PlantDB(Base):
             from plant_health_tracker.db import DatabaseConnection
             db = DatabaseConnection()
             db_session = db.get_session()
-            results = db_session.query(PlantDB.id, PlantDB.name).all()
-            return [{"id": result.id, "name": result.name} for result in results]
+            results = db_session.query(cls).all()
+            return [Plant.model_validate(result) for result in results]
         except Exception as e:
             print(f"Error retrieving plants: {e}")
             return []

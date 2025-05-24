@@ -11,9 +11,8 @@ from telegram.error import TelegramError
 from telegram.constants import ParseMode
 from plant_health_tracker.config.base import TELEGRAM_BOT_TOKEN, TELEGRAM_GROUP_CHAT_ID
 from plant_health_tracker.plant_ai_bot import PlantChatbot
-from plant_health_tracker.models.plant import Plant
+from plant_health_tracker.models.plant import Plant, PlantDB
 from plant_health_tracker.utils.telegram import escape_markdown_v2
-
 
 class PlantTelegramBot:
     """
@@ -147,43 +146,33 @@ class PlantTelegramBot:
                     await asyncio.sleep(self.RETRY_DELAY)
                 else:
                     return False
-             
-    def _get_plants(self) -> List[Plant]:
-        """
-        Retrieve the list of plants registered with the bot.
-
-        Returns:
-            List[Plant]: List of registered plants
-        """
-        # Instead of incorrectly instantiating PlantDB, use mock data directly
-        from plant_health_tracker.models import PlantDB
-        from plant_health_tracker.db import DatabaseConnection
-        db = DatabaseConnection()
-        session = db.get_session()
-        plants = PlantDB.get_plant_list(session)
-        
-        if not plants:
-            self.logger.warning("No plants found in bot data")
-            return []
-        return plants
     
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         from plant_health_tracker.utils.telegram import preprocess_string
         chat_id = update.effective_chat.id
-        user_message = preprocess_string()
+        user_message = preprocess_string(update.message.text)
         user_name = update.message.from_user.first_name
         
         # Mocks
-        user_name = "Vita"
-        user_message = preprocess_string("You are doing such a great job Vendula, keep it up! Not like Bobes")
+        # user_name = "Vita"
+        # user_message = preprocess_string("You are doing such a great job Vendula, keep it up! Not like Bobes")
         
         # Security check: only allow messages from the specified chat ID
-        if chat_id != self.TELEGRAM_CHAT_ID:
+        self.logger.info(f"Received message from chat ID: '{chat_id}', user: {user_name}, message: {user_message}")   
+        self.logger.info(f"{type(chat_id)}")
+        self.logger.info(f"Expected chat ID: '{self.TELEGRAM_CHAT_ID}'")
+        self.logger.info(f"{type(self.TELEGRAM_CHAT_ID)}")
+        
+        if str(chat_id) != str(self.TELEGRAM_CHAT_ID):
             self.logger.warning(f"Received message from unauthorized chat ID: {chat_id}")
             return
         self.logger.info(f"Received message from {user_name}: {user_message}")
         
-        plants = self._get_plants()    
+        plants = PlantDB.get_plant_list()
+        if not plants:
+            self.logger.warning("No plants available to chat")
+            await update.message.reply_text("No plants available to chat with. Check app logs regarding connection to DB.")
+            return
         
         # Check if message mentions any plants, take the first mentioned one
         mentioned_plants = [(plant, user_message.lower().find(preprocess_string(plant.name.lower()))) 
@@ -215,7 +204,7 @@ class PlantTelegramBot:
                     plant_id=target_plant.id,
                     message=f"{target_plant.name}: {response}"
                 )
-                await self.send_plant_message(
+                await self.send_message(
                     message=response,
                     chat_id=chat_id,
                     plant_name=target_plant.name
@@ -256,9 +245,66 @@ class PlantTelegramBot:
             self.conversation_history[plant_id]["messages"] = []
             self.conversation_history[plant_id]["last_active"] = now
         return self.conversation_history[plant_id]["messages"]
+    
+    async def _error_handler(self, update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle errors in the Telegram bot."""
+        self.logger.error(f"Exception while handling an update: {context.error}")
+        
+    async def _cmd_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handler for the /help command."""
+        help_text = (
+            "I can help you communicate with your plants!\n\n"
+            "Available commands:\n"
+            "/help - Show this help message\n"
+            # "/status - Check the status of all plants\n"
+            "/plants - List available plants\n\n"
+            "To chat with a specific plant, mention their name:\n"
+            "Example: 'Hi Vendula, why are you doing so bad, Bobes is doing ok !'"
+        )
+        await update.message.reply_text(help_text)
+        
+    async def _cmd_list_plants(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handler for the /plants command to list available plants."""
+        plants = PlantDB.get_plant_list()
+        plants_text = "Available plants:\n"
+        for plant in plants:
+            plants_text += f"- {plant.name} ({plant.species}) - {plant.persona}\n"
+        await update.message.reply_text(plants_text)
+    
+    async def setup(self):
+        """Set up command handlers for the bot."""
+        self.logger.info("Starting Telegram bot application...")
+
+        self.application.add_handler(CommandHandler("help", self._cmd_help))
+        self.application.add_handler(CommandHandler("plants", self._cmd_list_plants))
+        self.application.add_handler(
+            MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message)
+        )
+        self.application.add_error_handler(self._error_handler)
+        
+        self.logger.info("Telegram bot handlers have been set up")
+    
+    async def run_application(self) -> None:
+        await self.setup()
+        await self.application.run_polling(
+            poll_interval=5,
+            # allowed_updates=Update.ALL_TYPES # Optional: specify if you know what updates you need
+        )
+        self.logger.info("Telegram bot application polling has stopped.")
+
+async def main():
+    """Main async function to run the bot"""
+    bot = PlantTelegramBot()
+    await bot.run_application()
+
 
 if __name__ == "__main__":
-    # # Example usage
+    
+    import nest_asyncio
+    nest_asyncio.apply()
+    asyncio.run(main())
+    # # Mock Example
+    # # --------------------------------------------
     # async def main():
     #     plant_bot = PlantTelegramBot()
     #     plant_bot.logger.info("Plant Telegram Bot initialized")
@@ -274,21 +320,23 @@ if __name__ == "__main__":
     # asyncio.run(main())
         
 
-    from plant_health_tracker.models import PlantDB, SensorDataDB
+    # # Another Example usage using Real Data
+    # # --------------------------------------------
+    # from plant_health_tracker.models import PlantDB, SensorDataDB
 
-    plant = PlantDB.get_plant(1)  # Replace with the actual plant ID you want to test    
-    print(plant)
-    sensor_data = SensorDataDB.get_latest_reading(plant.id)
-    print(sensor_data)
+    # plant = PlantDB.get_plant(1)  # Replace with the actual plant ID you want to test    
+    # print(plant)
+    # sensor_data = SensorDataDB.get_latest_reading(plant.id)
+    # print(sensor_data)
 
-    from plant_health_tracker.plant_ai_bot import PlantChatbot
-    plant_bot = PlantChatbot()
-    plant_message = plant_bot.get_daily_notification(plant, sensor_data=sensor_data)
-    print(plant_message)
-    # Run async telegram message in console
-    telegram = PlantTelegramBot()
-    asyncio.run(telegram.send_message(
-        message=plant_message,
-        plant_name=plant.name,
-        chat_id=TELEGRAM_GROUP_CHAT_ID
-    ))
+    # from plant_health_tracker.plant_ai_bot import PlantChatbot
+    # plant_bot = PlantChatbot()
+    # plant_message = plant_bot.get_daily_notification(plant, sensor_data=sensor_data)
+    # print(plant_message)
+    # # Run async telegram message in console
+    # telegram = PlantTelegramBot()
+    # asyncio.run(telegram.send_message(
+    #     message=plant_message,
+    #     plant_name=plant.name,
+    #     chat_id=TELEGRAM_GROUP_CHAT_ID
+    # ))
