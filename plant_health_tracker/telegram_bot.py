@@ -148,6 +148,14 @@ class PlantTelegramBot:
                     return False
     
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """
+        Handle incoming messages from users in the Telegram group chat.
+        This method processes the message, checks if it mentions any plants,
+        and responds accordingly.
+        Args:
+            update (Update): Incoming update containing the message
+            context (ContextTypes.DEFAULT_TYPE): Context for the update
+        """
         from plant_health_tracker.utils.telegram import preprocess_string
         chat_id = update.effective_chat.id
         user_message = preprocess_string(update.message.text)
@@ -285,6 +293,7 @@ class PlantTelegramBot:
         self.logger.info("Telegram bot handlers have been set up")
     
     async def run_application(self) -> None:
+        """Run the Telegram bot application."""
         await self.setup()
         await self.application.run_polling(
             poll_interval=5,
@@ -299,10 +308,10 @@ async def main():
 
 
 if __name__ == "__main__":
-    
     import nest_asyncio
     nest_asyncio.apply()
     asyncio.run(main())
+    
     # # Mock Example
     # # --------------------------------------------
     # async def main():
