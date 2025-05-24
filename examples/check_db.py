@@ -5,20 +5,17 @@ from typing import Optional, ClassVar
 import logging
 
 from plant_health_tracker.config.base import DEVELOPMENT_MODE
-from plant_health_tracker.models.base import Base
-from plant_health_tracker.models.sensor_data import SensorDataDB
-from plant_health_tracker.models.plant import PlantDB
+from plant_health_tracker.models import SensorDataDB, PlantDB
 # Get list of Plants from the database
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from plant_health_tracker.db.database import DatabaseConnection
-db = DatabaseConnection()
-session = db.get_session()
 plants = PlantDB.get_plant_list()
 logger.info(f"Found {len(plants)} plants:")
+logger.info('----- Available Plants -----')
 for plant in plants:
-    logger.info(plant)
+    logger.info(repr(plant))
+logger.info('-'*20)
 
 # Get Plant with ID 1
 plant = PlantDB.get_plant(1)
