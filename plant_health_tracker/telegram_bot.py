@@ -161,10 +161,6 @@ class PlantTelegramBot:
         user_message = preprocess_string(update.message.text)
         user_name = update.message.from_user.first_name
         
-        # Mocks
-        # user_name = "Vita"
-        # user_message = preprocess_string("You are doing such a great job Vendula, keep it up! Not like Bobes")
-        
         # Security check: only allow messages from the specified chat ID
         self.logger.info(f"Received message from chat ID: '{chat_id}', user: {user_name}, message: {user_message}")   
         self.logger.info(f"{type(chat_id)}")
@@ -297,7 +293,7 @@ class PlantTelegramBot:
         await self.setup()
         await self.application.run_polling(
             poll_interval=5,
-            # allowed_updates=Update.ALL_TYPES # Optional: specify if you know what updates you need
+            allowed_updates=Update.ALL_TYPES # Optional: specify if you know what updates you need
         )
         self.logger.info("Telegram bot application polling has stopped.")
 
