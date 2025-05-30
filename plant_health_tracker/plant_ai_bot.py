@@ -25,7 +25,6 @@ class PlantChatbot:
     """
 
     RESPONSE_MAX_WORDS = 60
-    MODEL_NAME = "gpt-4o-mini"
     
     def __init__(
         self,
