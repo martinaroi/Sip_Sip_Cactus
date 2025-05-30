@@ -2,6 +2,11 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
+![Stars](https://img.shields.io/github/stars/martinaroi/Sip_Sip_Cactus?style=social)
+![Contributors](https://img.shields.io/github/contributors/martinaroi/Sip_Sip_Cactus)
+![Commits](https://img.shields.io/github/commit-activity/m/martinaroi/Sip_Sip_Cactus)
+![Last Commit](https://img.shields.io/github/last-commit/martinaroi/Sip_Sip_Cactus)
+![Code Size](https://img.shields.io/github/languages/code-size/martinaroi/Sip_Sip_Cactus)
 
 A comprehensive Python project for monitoring plant health using IoT sensors on Raspberry Pi Zero 2, enabling conversational plant communication via Telegram.
 
