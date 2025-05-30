@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 
-DEVELOPMENT_MODE = True
+DEVELOPMENT_MODE = False
 USE_MOCKS = False
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 PACKAGE_DIR = Path(__file__).resolve().parent.parent

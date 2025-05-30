@@ -13,9 +13,9 @@ A comprehensive Python project for monitoring plant health using IoT sensors on 
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Configuration](#configuration)
-    - [Telegram Bot](#telegram-bot)
+    - [Telegram Bot Setup](#telegram-bot-setup)
   - [Usage](#usage)
-    - [Telegram Bot](#telegram-bot-1)
+    - [Telegram Bot](#telegram-bot)
     - [Streamlit Dashboard](#streamlit-dashboard)
 
 
@@ -27,7 +27,8 @@ A comprehensive Python project for monitoring plant health using IoT sensors on 
 - [Streamlit](https://streamlit.io/) + [Plotly](https://plotly.com/) for dashboards
 - [LangChain](https://langchain.com/) & OpenAI for conversational AI
 - [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) for notifications
-- PostgreSQL for data persistence
+- PostgreSQL for database management
+- Raspberry Pi Zero 2 for IoT sensor integration
 
 ## Prerequisites
 
@@ -41,14 +42,23 @@ A comprehensive Python project for monitoring plant health using IoT sensors on 
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/PlantHealthMonitor.git
-   cd PlantHealthMonitor
+   git clone https://github.com/martinaroi/Sip_Sip_Cactus.git
+   cd SIP_SIP_CACTUS
    ```
-2. Install dependencies via Poetry:
+2. Install [Poetry](https://python-poetry.org/docs/#installation) if you haven't already:
+   ```bash
+   curl -sSL https://install.python-poetry.org | python3 -
+   ```
+   Ensure Poetry is in your PATH, or follow the instructions provided by the installer.
+3. Install Postgres Headers (if not already installed):
+   ```bash
+   sudo apt-get install libpq-dev python3-dev
+   ```
+4. Install dependencies via Poetry:
    ```bash
    poetry install
    ```
-3. Copy and customize environment files:
+5. Copy and customize environment files:
    ```bash
    cp env/env.example env/development.env
    # or use env/production.env for production
@@ -58,7 +68,7 @@ A comprehensive Python project for monitoring plant health using IoT sensors on 
 
 Environment variables are managed via `.env` files in the `env/` directory. At minimum, set the following:
 
-### Telegram Bot 
+### Telegram Bot Setup
 Create a Telegram bot and get your token:
 1. Open Telegram and search for `@BotFather`.
 2. Start a chat and use the command `/newbot` to create a new bot.
