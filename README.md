@@ -9,7 +9,7 @@ A comprehensive Python project for monitoring plant health using IoT sensors on 
 
 - [PlantHealthMonitor](#planthealthmonitor)
   - [Table of Contents](#table-of-contents)
-  - [Technologies](#technologies)
+  - [Architecture](#architecture)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Configuration](#configuration)
@@ -19,7 +19,7 @@ A comprehensive Python project for monitoring plant health using IoT sensors on 
     - [Streamlit Dashboard](#streamlit-dashboard)
 
 
-## Technologies
+## Architecture
 
 - Python 3.12
 - [Poetry](https://python-poetry.org/) for dependency management
@@ -27,8 +27,10 @@ A comprehensive Python project for monitoring plant health using IoT sensors on 
 - [Streamlit](https://streamlit.io/) + [Plotly](https://plotly.com/) for dashboards
 - [LangChain](https://langchain.com/) & OpenAI for conversational AI
 - [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) for notifications
-- PostgreSQL for database management
+- PostgreSQL to store sensor data
 - Raspberry Pi Zero 2 for IoT sensor integration
+
+![Architecture Diagram](./docs/architecture_diagram.png)
 
 ## Prerequisites
 
