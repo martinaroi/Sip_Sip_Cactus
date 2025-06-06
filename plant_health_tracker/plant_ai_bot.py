@@ -52,7 +52,7 @@ class PlantChatbot:
             model=self.model_name,
             openai_api_key=self.api_key,
             max_tokens=200,
-            temperature=1.2, # Higher temperature for more creative responses
+            temperature=1.1, # Higher temperature for more creative responses
             top_p=1, # Use top-p sampling
             frequency_penalty=0.05, # Avoid repeating the same tokens
             presence_penalty=0.0, # Reuse the same tokens
@@ -80,6 +80,26 @@ class PlantChatbot:
                 """
                 Based on this data, provide summary about how you are doing.
                 Keep your answer concise (max {reponse_length} words).
+                """
+            )
+        ])
+        
+        self.summary_prompt = ChatPromptTemplate.from_messages([
+            SystemMessagePromptTemplate.from_template(self.system_personality),
+            SystemMessagePromptTemplate.from_template("{sensor_context}"),
+            HumanMessagePromptTemplate.from_template(
+                """
+                Give one sentence summary on how you feel (max 12 words).
+                """
+            )
+        ])
+        
+        self.recommendation_prompt = ChatPromptTemplate.from_messages([
+            SystemMessagePromptTemplate.from_template(self.system_personality),
+            SystemMessagePromptTemplate.from_template("{sensor_context}"),
+            HumanMessagePromptTemplate.from_template(
+                """
+                Give Vitezslav and Martina short (max 20 words) recommendation on next steps to take care of you.
                 """
             )
         ])
@@ -136,6 +156,46 @@ class PlantChatbot:
             "sensor_context": self._get_sensor_context(sensor_data, moisture_threshold=plant.moisture_threshold),
         })
         return response
+    
+    def get_summary(self, plant: Plant, sensor_data: pd.DataFrame | SensorData) -> str:
+        """
+        Generates a one-sentence summary of the plant's current state.
+
+        Args:
+            plant (Plant): Plant object containing species and personality information
+            sensor_data (pd.DataFrame): Recent sensor readings for the plant
+
+        Returns:
+            str: One-sentence summary of the plant's condition
+        """
+        summary_chain = self.summary_prompt | self.model | StrOutputParser()
+        response = summary_chain.invoke({
+            "plant_species": plant.species,
+            "plant_personality": plant.personality,
+            "plant_persona": plant.persona,
+            "sensor_context": self._get_sensor_context(sensor_data, moisture_threshold=plant.moisture_threshold),
+        })
+        return response
+    
+    def get_recommendation(self, plant: Plant, sensor_data: pd.DataFrame | SensorData) -> str:
+        """
+        Provides care recommendations based on the plant's current state.
+
+        Args:
+            plant (Plant): Plant object containing species and personality information
+            sensor_data (pd.DataFrame): Recent sensor readings for the plant
+
+        Returns:
+            str: Recommendations for taking care of the plant
+        """
+        recommendation_chain = self.recommendation_prompt | self.model | StrOutputParser()
+        response = recommendation_chain.invoke({
+            "plant_species": plant.species,
+            "plant_personality": plant.personality,
+            "plant_persona": plant.persona,
+            "sensor_context": self._get_sensor_context(sensor_data, moisture_threshold=plant.moisture_threshold),
+        })
+        return response
 
     def get_chat_response(self, user_input: str, plant: Plant, conversation_history: Optional[list[str]], user:Optional[str]=None, sensor_data: Optional[pd.DataFrame] = None) -> str:
         """
@@ -171,40 +231,57 @@ class PlantChatbot:
 # Example usage (requires OPENAI_API_KEY environment variable to be set)
 if __name__ == "__main__":
     # Create mock sensor data
-    mock_data = pd.DataFrame({
-        'timestamp': pd.date_range(start='2024-01-01', periods=5, freq='H'),
-        'moisture': [45, 42, 40, 38, 35],
-        'temperature': [22.5, 22.8, 23.0, 23.2, 23.5]
-    })
+    # mock_data = pd.DataFrame({
+    #     'timestamp': pd.date_range(start='2024-01-01', periods=5, freq='H'),
+    #     'moisture': [45, 42, 40, 38, 35],
+    #     'temperature': [22.5, 22.8, 23.0, 23.2, 23.5]
+    # })
 
-    # Create a mock plant
-    from plant_health_tracker.mock.plant_data import PLANT_MOCK_A, PLANT_MOCK_B
-    test_plant = PLANT_MOCK_A
+    # # Create a mock plant
+    # from plant_health_tracker.mock.plant_data import PLANT_MOCK_A, PLANT_MOCK_B
+    # test_plant = PLANT_MOCK_A
 
-    # Initialize the bot handler
+    # # Initialize the bot handler
+    # plant_bot = PlantChatbot()
+
+    # # Test daily notification
+    # print("=== Daily Notification ===")
+    # notification = plant_bot.get_daily_notification(test_plant, mock_data)
+    # print(notification)
+    
+    
+    # conversation_history = [
+    #     "User: How are you doing today?",
+    #     "Plant: What do you think... I'm being drained of moisture and I'm not happy about it.",
+    # ]
+    # '\n'.join(conversation_history)
+
+    # # Test chat interaction
+    # print("\n=== Chat Interaction ===")
+    # chat_response = plant_bot.get_chat_response(
+    #     user_input="Anything we can do ?",
+    #     plant=test_plant,
+    #     conversation_history=conversation_history,
+    #     user="Vitezslav Slavik",
+    #     sensor_data=mock_data
+    # )
+    # print(f"User: Anything we can do ?")
+    # print(f"Plant: {chat_response}")
+    
+    
+    from plant_health_tracker.models import PlantDB, SensorDataDB
+    # Get the plant and its latest sensor data from the database    
+    plant = PlantDB.get_plant(id=1)
+    latest_sensor_data = SensorDataDB.get_latest_reading(plant.id)
+
+    # Get Summary and Recommendation for the plant
     plant_bot = PlantChatbot()
-
-    # Test daily notification
-    print("=== Daily Notification ===")
-    notification = plant_bot.get_daily_notification(test_plant, mock_data)
-    print(notification)
+    print("\n=== Summary Notification for Plant from DB ===")
+    summary = plant_bot.get_summary(plant, sensor_data=latest_sensor_data)
+    print(summary)
     
+    print("\n=== Recommendation Notification for Plant from DB ===")
+    recommendation = plant_bot.get_recommendation(plant, sensor_data=latest_sensor_data)
+    print(recommendation)
     
-    conversation_history = [
-        "User: How are you doing today?",
-        "Plant: What do you think... I'm being drained of moisture and I'm not happy about it.",
-    ]
-    '\n'.join(conversation_history)
-
-    # Test chat interaction
-    print("\n=== Chat Interaction ===")
-    chat_response = plant_bot.get_chat_response(
-        user_input="Anything we can do ?",
-        plant=test_plant,
-        conversation_history=conversation_history,
-        user="Vitezslav Slavik",
-        sensor_data=mock_data
-    )
-    print(f"User: Anything we can do ?")
-    print(f"Plant: {chat_response}")
 
