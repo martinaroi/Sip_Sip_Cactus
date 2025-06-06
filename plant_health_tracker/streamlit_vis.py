@@ -5,9 +5,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime, timedelta
-from plant_health_tracker.mock.plant_data import PLANT_MOCK_A, PLANT_MOCK_B #issues importing data
+from plant_health_tracker.mock.plant_data import PLANT_MOCK_A, PLANT_MOCK_B
 from plant_health_tracker.mock.sensor_data import SENSOR_DATA_MOCK_A, SENSOR_DATA_MOCK_B, MockSensorDataDB
 from plant_health_tracker.utils.moisture_evaluation import evaluate_moisture
+
+# TODO: QUOTE of the day
+# TODO: Add AI-generated plant care tips based on moisture levels
 
 st.set_page_config(page_title="Plant Health Dashboard", layout="centered")
 st.title("🌵 Plant Health Dashboard 🌱")
@@ -133,58 +136,97 @@ if not history_df.empty:
     daily_min = history_df.groupby('date')['moisture'].min().reset_index()
     daily_min['date'] = pd.to_datetime(daily_min['date'])
     
-    # Create line plot
-    fig, ax = plt.subplots(figsize=(10, 5))
-    
-    # Set transparent background to match Streamlit
-    fig.patch.set_alpha(0.0)
-    ax.set_facecolor('none')
-    
-    # Soft background colors
-    soft_red = '#ffcccc'
-    soft_orange = '#ffe5cc'
-    soft_green = '#e6ffe6'
-    
-    # Create background zones
-    threshold = selected_plant.moisture_threshold
-    ax.axhspan(0, threshold * 0.6, color=soft_red, alpha=0.8, label='Danger Zone (Dry)')
-    ax.axhspan(threshold * 0.6, threshold * 0.8, color=soft_orange, alpha=0.8, label='Warning Zone (Dry)')
-    ax.axhspan(threshold * 0.8, threshold * 1.2, color=soft_green, alpha=0.8, label='Optimal Zone')
-    ax.axhspan(threshold * 1.2, threshold * 1.4, color=soft_orange, alpha=0.8, label='Warning Zone (Wet)')
-    ax.axhspan(threshold * 1.4, 100, color=soft_red, alpha=0.8, label='Danger Zone (Wet)')
-    
-    # Plot daily minimum moisture
-    ax.plot(daily_min['date'], 
-            daily_min['moisture'], 
-            marker='o', 
-            markersize=8,
-            linestyle='-',
-            linewidth=2,
-            color='#123b5a',
-            label='Daily Minimum Moisture')
+    #create figure
+    fig = go.Figure()
+
+    #add background zones
+    if selected_plant.moisture_threshold:
+        threshold = selected_plant.moisture_threshold
+        fig.add_shape(type="rect", xref="paper", yref="y",
+                    x0=0, y0=0, x1=1, y1=threshold * 0.6,
+                    fillcolor="#ffcccc", opacity=0.4, layer="below", line_width=0)
+        
+        fig.add_shape(type="rect", xref="paper", yref="y",
+                    x0=0, y0=threshold * 0.6, x1=1, y1=threshold * 0.8,
+                    fillcolor="#ffe5cc", opacity=0.4, layer="below", line_width=0)
+        
+        fig.add_shape(type="rect", xref="paper", yref="y",
+                    x0=0, y0=threshold * 0.8, x1=1, y1=threshold * 1.2,
+                    fillcolor="#e6ffe6", opacity=0.4, layer="below", line_width=0)
+        fig.add_shape(type="rect", xref="paper", yref="y",
+                    x0=0, y0=threshold * 1.2, x1=1, y1=threshold * 1.4,
+                    fillcolor="#ffe5cc", opacity=0.4, layer="below", line_width=0)
+        
+        fig.add_shape(type="rect", xref="paper", yref="y",
+                    x0=0, y0=threshold * 1.4, x1=1, y1=100,
+                    fillcolor="#ffcccc", opacity=0.4, layer="below", line_width=0)
+    else:
+        threshold = 50 # Default threshold if not set
+
+    # Add daily minimum line
+    fig.add_trace(go.Scatter(
+        x=daily_min['date'],
+        y=daily_min['moisture'],
+        mode='lines+markers',
+        marker=dict(size=8, color='#123b5a'),
+        line=dict(width=2, color='#123b5a'),
+        name='Daily Minimum Moisture'
+    ))
     
     # Add threshold line
-    ax.axhline(y=threshold, color='darkgreen', linestyle='--', linewidth=1.5, alpha=0.7, 
-               label=f'Threshold ({threshold}%)')
+    fig.add_shape(type="line",
+                  x0=daily_min['date'].min(), y0=threshold,
+                  x1=daily_min['date'].max(), y1=threshold,
+                  line=dict(color="darkgreen", width=1.5, dash="dash"),
+                  name=f'Threshold ({threshold}%)')
     
-    # Customize plot
-    ax.set_title(f"{selected_plant.name} Daily Minimum Moisture", fontsize=16, pad=15, color = 'white')
-    ax.set_xlabel("Date", fontsize=12, color='white')
-    ax.set_ylabel("Moisture Level (%)", fontsize=12, color='white')
-    ax.set_ylim(0, 100)
-    ax.tick_params(axis='x', colors='white')
-    ax.tick_params(axis='y', colors='white')
+    # Customize layout
+    fig.update_layout(
+        title=f"{selected_plant.name} Daily Minimum Moisture",
+        xaxis_title="Date",
+        yaxis_title="Moisture Level (%)",
+        yaxis_range=[0, 100],
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(color="#0E1117"),
+        hovermode="x unified",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
     
     # Format x-axis dates
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-    fig.autofmt_xdate(rotation=45)
+    fig.update_xaxes(
+        tickformat="%b %d",
+        tickangle=45
+    )
     
-    # Add legend with theme-adaptive styling
-    legend = ax.legend(loc='best', framealpha=0.8)
-    legend.get_frame().set_facecolor('white')
-    legend.set_alpha(0.7)
+    # Add zone labels
+    fig.add_annotation(text="Danger (Dry)", xref="paper", yref="y",
+                       x=0.01, y=threshold * 0.3, showarrow=False,
+                       font=dict(color="#0E1117"))
     
-    st.pyplot(fig)
+    fig.add_annotation(text="Warning (Dry)", xref="paper", yref="y",
+                       x=0.01, y=threshold * 0.7, showarrow=False,
+                       font=dict(color="#0E1117"))
+    
+    fig.add_annotation(text="Optimal", xref="paper", yref="y",
+                       x=0.01, y=threshold * 1.0, showarrow=False,
+                       font=dict(color="#0E1117"))
+    
+    fig.add_annotation(text="Warning (Wet)", xref="paper", yref="y",
+                       x=0.01, y=threshold * 1.3, showarrow=False,
+                       font=dict(color="#0E1117"))
+    
+    fig.add_annotation(text="Danger (Wet)", xref="paper", yref="y",
+                       x=0.01, y=threshold * 1.7, showarrow=False,
+                       font=dict(color="#0E1117"))
+    
+    st.plotly_chart(fig, use_container_width=True)
 else:
     st.warning("No historical data available for this plant.")
 
