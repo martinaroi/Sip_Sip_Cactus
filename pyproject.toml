@@ -23,10 +23,19 @@ nest-asyncio = "^1.6.0"
 streamlit = "^1.45.1"
 plotly = "^6.1.2"
 numpy = "^2.2.6"
-matplotlib = "^3.10.3"
 adafruit-seesaw = "^1.0"
 adafruit-circuitpython-seesaw = "^1.16.6"
 
+
+[tool.poetry.group.berry]
+optional = true
+
+
+[tool.poetry.group.berry.dependencies]
+adafruit-circuitpython-seesaw = "^1.16.6"
+rpi-gpio = "^0.7.1"
+adafruit-blinka = "^8.58.1"
+board = "^1.0"
 
 [build-system]
 requires = ["poetry-core"]
