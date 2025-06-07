@@ -1,7 +1,7 @@
 import time
+from adafruit_seesaw.seesaw import Seesaw
 import board
 import busio
-from adafruit_seesaw.seesaw import Seesaw
 
 from plant_health_tracker.models.sensor_data import SensorDataDB
 from plant_health_tracker.db import DatabaseConnection
@@ -9,7 +9,7 @@ from plant_health_tracker.db import DatabaseConnection
 # Create I2C bus and sensor
 i2c_bus = busio.I2C(board.D3, board.D2)
 ss = Seesaw(i2c_bus, addr=0x36)
-
+ 
 # Calibration values (adjust to your soil & sensor)
 DRY_VALUE = 200
 WET_VALUE = 600
