@@ -5,9 +5,7 @@ from datetime import datetime, timedelta
 from plant_health_tracker.mock.plant_data import PLANT_MOCK_A, PLANT_MOCK_B
 from plant_health_tracker.mock.sensor_data import SENSOR_DATA_MOCK_A, SENSOR_DATA_MOCK_B, MockSensorDataDB
 from plant_health_tracker.utils.moisture_evaluation import evaluate_moisture
-
-# TODO: QUOTE of the day
-# TODO: Add AI-generated plant care tips based on moisture levels
+from plant_health_tracker.plant_ai_bot import PlantChatbot
 
 st.set_page_config(page_title="Plant Health Dashboard", layout="centered")
 st.title("🌵 Plant Health Dashboard 🌱")
@@ -56,7 +54,30 @@ def moisture_gauge_chart(plant, sensor_data):
     fig.update_layout(margin=dict(t=50, b=10))
     return fig
 
+#Initialize chatbot
+@st.cache_resource
+def get_plant_bot():
+        return PlantChatbot()
+
+plant_bot = get_plant_bot()
+
+# ---Plant Quote of the day ---
+# #Display quote
+try: 
+    daily_quote = plant_bot.get_summary(selected_plant, selected_sensor_data)
+except Exception:
+    daily_quote = f"{selected_plant.name} is feeling mysterious today!"
+
+st.markdown(
+    f'<div style="background-color:#04549b; padding:15px; border-radius:10px; border-left:4px solid  #f0f8ff; margin-bottom:20px">'
+    f'<p style="font-style:italic; font-size:18px; margin:0;">"{daily_quote}"</p>'
+    f'<p style="text-align:right; font-size:14px; margin-top:5px;">— {selected_plant.name}\'s Daily Thought</p>'
+    f'</div>',
+    unsafe_allow_html=True
+)
+
 # --- Display Plant Information ---
+st.divider()
 st.header("Plant Information")
 plant_info = pd.DataFrame([{
     "Name": selected_plant.name,
@@ -109,7 +130,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- Line Plot of Historical Data (Daily Minimum) ----
-#ISSUE: with matplotlib and streamlit background colors
 st.markdown("---")
 st.header("Historical Moisture Levels")
 st.caption("Daily minimum moisture levels over the past 30 days")
@@ -232,6 +252,13 @@ st.markdown("---")
 st.header("Health Status & Recommendations")
 status_col, rec_col = st.columns([1, 2])
 
+# @st.cache_data(ttl=timedelta(hours = 6))
+# def get_care_tips(plant, sensor_data):
+#     try:
+#         return plant_bot.get_recommendation(plant, sensor_data)
+#     except Exception:
+#         return f"Give {plant.name} some love and attention today!"
+
 with status_col:
     # Status indicator with color
     st.markdown(f"### Current Status: <span style='color:{evaluation['color']};'>{evaluation['status']}</span>", 
@@ -246,31 +273,48 @@ with status_col:
         st.markdown("<div style='font-size: 80px; text-align: center;'>🥀</div>", unsafe_allow_html=True)
 
 with rec_col:
-    st.subheader("Recommendations")
-    if evaluation["status"] == "Optimal":
-        st.success("🌞**Maintain current care routine**")
-        st.write("Your plant is thriving! Continue with your current watering schedule and environment.")
-        st.progress(0.9, text="Optimal health")
-    elif evaluation["status"] == "Warning":
-        st.warning("🌥️ **Adjust care routine**")
-        if "dry" in evaluation["detail"].lower():
-            st.write("💧 **Water within 1-2 days**")
-            st.write("Check soil moisture 1 inch below surface. Water thoroughly if dry.")
-            st.progress(0.6, text="Moderate attention needed")
-        else:
-            st.write("🌊 **Improve drainage & reduce watering**")
-            st.write("Allow soil to dry between waterings. Ensure proper drainage.")
-            st.progress(0.4, text="Moderate attention needed")
-    else:
-        st.error("⛈️ **Immediate action required**")
-        if "dry" in evaluation["detail"].lower():
-            st.write("💦 **Water immediately**")
-            st.write("Soak thoroughly until water drains from the bottom. Check for root damage.")
-            st.progress(0.2, text="Urgent attention needed")
-        else:
-            st.write("🚑 **Check for root rot**")
-            st.write("Stop watering immediately. Remove from pot, trim damaged roots, and repot in dry soil.")
-            st.progress(0.1, text="Urgent attention needed")
+    st.subheader("🌿 PlantyAI Care Tips")
+    #care_tips = get_care_tips(selected_plant, selected_sensor_data)
+    try:
+        care_tips = plant_bot.get_recommendation(selected_plant, selected_sensor_data)
+    except Exception:
+        care_tips = f"Give {selected_plant.name} some love and attention today!"
+    st.markdown(
+            f'<div style="background-color:#056915; padding:20px; border-radius:10px; border-left:4px solid #f0fff4">'
+    f'<p style="font-size:18px; margin:0;">{care_tips}</p>'
+    f'</div>',
+    unsafe_allow_html=True
+    )
+    # if evaluation["status"] == "Optimal":
+    #     st.success("🌞**Maintain current care routine**")
+    #     st.write("Your plant is thriving! Continue with your current watering schedule and environment.")
+    #     st.progress(0.9, text="Optimal health")
+    # elif evaluation["status"] == "Warning":
+    #     st.warning("🌥️ **Adjust care routine**")
+    #     if "dry" in evaluation["detail"].lower():
+    #         st.write("💧 **Water within 1-2 days**")
+    #         st.write("Check soil moisture 1 inch below surface. Water thoroughly if dry.")
+    #         st.progress(0.6, text="Moderate attention needed")
+    #     else:
+    #         st.write("🌊 **Improve drainage & reduce watering**")
+    #         st.write("Allow soil to dry between waterings. Ensure proper drainage.")
+    #         st.progress(0.4, text="Moderate attention needed")
+    # else:
+    #     st.error("⛈️ **Immediate action required**")
+    #     if "dry" in evaluation["detail"].lower():
+    #         st.write("💦 **Water immediately**")
+    #         st.write("Soak thoroughly until water drains from the bottom. Check for root damage.")
+    #         st.progress(0.2, text="Urgent attention needed")
+    #     else:
+    #         st.write("🚑 **Check for root rot**")
+    #         st.write("Stop watering immediately. Remove from pot, trim damaged roots, and repot in dry soil.")
+    #         st.progress(0.1, text="Urgent attention needed")
+
+#refresh button
+st.caption('Tips refresh every 6 hours. Click below for fresh advice:')
+if st.button("🔄 Refresh Care Tips", use_container_width=True):
+    st.cache_data.clear()
+    st.rerun()
 
 # Footer
 st.markdown("---")
