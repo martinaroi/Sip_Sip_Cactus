@@ -445,18 +445,6 @@ files = [
 ]
 
 [[package]]
-name = "board"
-version = "1.0"
-description = "Standard Board mechanism for Dojo tasks"
-optional = false
-python-versions = "*"
-groups = ["berry"]
-files = [
-    {file = "board-1.0-py2.py3-none-any.whl", hash = "sha256:b97c986d0190a2a5181a7fe28959cd8515520b87f672796e21e1b0d32cc63e2f"},
-    {file = "board-1.0.tar.gz", hash = "sha256:cd718c3322a126d86455e24ae0cebb59a567cbdbaf03696391dccf88c8f456d6"},
-]
-
-[[package]]
 name = "brotli"
 version = "1.1.0"
 description = "Python bindings for the Brotli compression library"
@@ -3800,4 +3788,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4.0"
-content-hash = "9faf2ab9ffdd1adb22672d4a1c203c6600020945e4929f7954dc7cf831cdd88a"
+content-hash = "2077a3ef81d849ccd4945cef1088c5bcb0189db4acc66828c2f0293530405144"

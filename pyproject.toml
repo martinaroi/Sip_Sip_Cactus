@@ -35,7 +35,6 @@ optional = true
 adafruit-circuitpython-seesaw = "^1.16.6"
 rpi-gpio = "^0.7.1"
 adafruit-blinka = "^8.58.1"
-board = "^1.0"
 
 [build-system]
 requires = ["poetry-core"]
