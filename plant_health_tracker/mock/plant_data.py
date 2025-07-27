@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 from ..models.plant import Plant
 
 # Plant mocks - these look correct following the Plant model structure
@@ -23,7 +24,7 @@ PLANT_MOCK_B = Plant(
 )
 
 class MockPlantDB:
-    def get_plant(self, id) -> Plant:
+    def get_plant(self, id) -> Optional[Plant]:
         """Retrieves a plant by its ID from the database.
         
         Args:
