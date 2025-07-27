@@ -13,14 +13,14 @@ files = [
 
 [[package]]
 name = "adafruit-blinka"
-version = "8.58.1"
+version = "8.62.0"
 description = "CircuitPython APIs for non-CircuitPython versions of Python such as CPython on Linux and MicroPython."
 optional = false
 python-versions = ">=3.7.0"
 groups = ["main", "berry"]
 files = [
-    {file = "adafruit_blinka-8.58.1-py3-none-any.whl", hash = "sha256:e685474308d8c9111f4d492113d67a0c808f83c712ba3f2dc7895df782e00355"},
-    {file = "adafruit_blinka-8.58.1.tar.gz", hash = "sha256:d26dde6b59747aba1944b2ac9db58f97bb8ca891eddacf90deacd9b4aba1190c"},
+    {file = "adafruit_blinka-8.62.0-py3-none-any.whl", hash = "sha256:22234f4c8fa8ca5717ce588ae90f71b95bcf2869f855bb47a62e9dacc6b1099a"},
+    {file = "adafruit_blinka-8.62.0.tar.gz", hash = "sha256:b70d7ffe4ee097676c4035ab4bf36798271c1a6055b4b0cfee27b738a31cfdaa"},
 ]
 
 [package.dependencies]
@@ -3788,4 +3788,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4.0"
-content-hash = "2077a3ef81d849ccd4945cef1088c5bcb0189db4acc66828c2f0293530405144"
+content-hash = "9fc5ad1d5c6a50aa54466bd1f7a868e9c580c35ee589708bc11dead238ad5a4d"

@@ -25,6 +25,7 @@ plotly = "^6.1.2"
 numpy = "^2.2.6"
 adafruit-seesaw = "^1.0"
 adafruit-circuitpython-seesaw = "^1.16.6"
+adafruit-blinka = "^8.62.0"
 
 
 [tool.poetry.group.berry]
