@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
@@ -57,16 +58,41 @@ def moisture_gauge_chart(plant, sensor_data):
 #Initialize chatbot
 @st.cache_resource
 def get_plant_bot():
-        return PlantChatbot()
+    # Try to get API key from environment
+    api_key = os.getenv("OPENAI_API_TOKEN")
+    
+    # If not found, try to load from .env files
+    if not api_key:
+        try:
+            from dotenv import load_dotenv
+            # Try development first, then production
+            load_dotenv("env/development.env") or load_dotenv("env/production.env")
+            api_key = os.getenv("OPENAI_API_TOKEN")
+        except ImportError:
+            pass
+    
+    if api_key:
+        try:
+            # Initialize with explicit API key
+            return PlantChatbot(api_key=api_key)
+        except Exception as e:
+            st.error(f"Failed to initialize chatbot: {str(e)}")
+            return None
+    else:
+        st.warning("OpenAI API key is missing. Chatbot features disabled.")
+        return None
 
 plant_bot = get_plant_bot()
 
 # ---Plant Quote of the day ---
 # #Display quote
-try: 
-    daily_quote = plant_bot.get_summary(selected_plant, selected_sensor_data)
-except Exception:
-    daily_quote = f"{selected_plant.name} is feeling mysterious today!"
+if plant_bot is not None:
+    try: 
+        daily_quote = plant_bot.get_summary(selected_plant, selected_sensor_data)
+    except Exception as e:
+        daily_quote = f"Error generating quote: {str(e)}"
+else:
+    daily_quote = "Chatbot disabled - missing API key"
 
 st.markdown(
     f'<div style="background-color:#04549b; padding:15px; border-radius:10px; border-left:4px solid  #f0f8ff; margin-bottom:20px">'
@@ -274,41 +300,20 @@ with status_col:
 
 with rec_col:
     st.subheader("🌿 PlantyAI Care Tips")
-    #care_tips = get_care_tips(selected_plant, selected_sensor_data)
-    try:
-        care_tips = plant_bot.get_recommendation(selected_plant, selected_sensor_data)
-    except Exception:
-        care_tips = f"Give {selected_plant.name} some love and attention today!"
+    if plant_bot is not None:
+        try:
+            care_tips = plant_bot.get_recommendation(selected_plant, selected_sensor_data)
+        except Exception as e:
+            care_tips = f"Error generating tips: {str(e)}"
+    else:
+        care_tips = "Chatbot disabled - missing API key"
+
     st.markdown(
             f'<div style="background-color:#056915; padding:20px; border-radius:10px; border-left:4px solid #f0fff4">'
     f'<p style="font-size:18px; margin:0;">{care_tips}</p>'
     f'</div>',
     unsafe_allow_html=True
     )
-    # if evaluation["status"] == "Optimal":
-    #     st.success("🌞**Maintain current care routine**")
-    #     st.write("Your plant is thriving! Continue with your current watering schedule and environment.")
-    #     st.progress(0.9, text="Optimal health")
-    # elif evaluation["status"] == "Warning":
-    #     st.warning("🌥️ **Adjust care routine**")
-    #     if "dry" in evaluation["detail"].lower():
-    #         st.write("💧 **Water within 1-2 days**")
-    #         st.write("Check soil moisture 1 inch below surface. Water thoroughly if dry.")
-    #         st.progress(0.6, text="Moderate attention needed")
-    #     else:
-    #         st.write("🌊 **Improve drainage & reduce watering**")
-    #         st.write("Allow soil to dry between waterings. Ensure proper drainage.")
-    #         st.progress(0.4, text="Moderate attention needed")
-    # else:
-    #     st.error("⛈️ **Immediate action required**")
-    #     if "dry" in evaluation["detail"].lower():
-    #         st.write("💦 **Water immediately**")
-    #         st.write("Soak thoroughly until water drains from the bottom. Check for root damage.")
-    #         st.progress(0.2, text="Urgent attention needed")
-    #     else:
-    #         st.write("🚑 **Check for root rot**")
-    #         st.write("Stop watering immediately. Remove from pot, trim damaged roots, and repot in dry soil.")
-    #         st.progress(0.1, text="Urgent attention needed")
 
 #refresh button
 st.caption('Tips refresh every 6 hours. Click below for fresh advice:')
