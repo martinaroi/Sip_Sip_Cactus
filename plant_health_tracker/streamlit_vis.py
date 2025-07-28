@@ -58,29 +58,29 @@ def moisture_gauge_chart(plant, sensor_data):
 #Initialize chatbot
 @st.cache_resource
 def get_plant_bot():
-    # Try to get API key from environment
-    api_key = os.getenv("OPENAI_API_TOKEN")
+    api_token = None
     
-    # If not found, try to load from .env files
-    if not api_key:
+    # 1. First check Streamlit secrets (for cloud deployment)
+    try:
+        if hasattr(st.secrets, "openai") and "api_token" in st.secrets.openai:
+            api_token = st.secrets.openai.api_token
+    except Exception:
+        pass
+    
+    # 2. Check environment variables (for local and cloud)
+    if not api_token:
+        api_token = os.getenv("OPENAI_API_TOKEN")
+    
+    # 3. If still not found, try loading from .env files
+    if not api_token:
         try:
             from dotenv import load_dotenv
             # Try development first, then production
-            load_dotenv("env/development.env") or load_dotenv("env/production.env")
-            api_key = os.getenv("OPENAI_API_TOKEN")
+            if not load_dotenv("env/development.env"):
+                load_dotenv("env/production.env")
+            api_token = os.getenv("OPENAI_API_TOKEN")
         except ImportError:
             pass
-    
-    if api_key:
-        try:
-            # Initialize with explicit API key
-            return PlantChatbot(api_key=api_key)
-        except Exception as e:
-            st.error(f"Failed to initialize chatbot: {str(e)}")
-            return None
-    else:
-        st.warning("OpenAI API key is missing. Chatbot features disabled.")
-        return None
 
 plant_bot = get_plant_bot()
 
