@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+
 from plant_health_tracker.mock.plant_data import PLANT_MOCK_A, PLANT_MOCK_B
 from plant_health_tracker.mock.sensor_data import SENSOR_DATA_MOCK_A, SENSOR_DATA_MOCK_B, MockSensorDataDB
 from plant_health_tracker.utils.moisture_evaluation import evaluate_moisture
@@ -55,32 +56,47 @@ def moisture_gauge_chart(plant, sensor_data):
     fig.update_layout(margin=dict(t=50, b=10))
     return fig
 
-#Initialize chatbot
-@st.cache_resource
-def get_plant_bot():
-    api_token = None
+def get_api_key():
+    """Get API key from multiple sources with priority to Streamlit secrets"""
+    api_key = None
     
-    # 1. First check Streamlit secrets (for cloud deployment)
+    # 1. First check Streamlit secrets
     try:
         if hasattr(st.secrets, "openai") and "api_token" in st.secrets.openai:
-            api_token = st.secrets.openai.api_token
+            api_key = st.secrets.openai.api_token
     except Exception:
         pass
     
-    # 2. Check environment variables (for local and cloud)
-    if not api_token:
-        api_token = os.getenv("OPENAI_API_TOKEN")
+    # 2. If not found, try environment variables
+    if not api_key:
+        api_key = os.getenv("OPENAI_API_TOKEN") or os.getenv("OPENAI_API_KEY")
     
-    # 3. If still not found, try loading from .env files
-    if not api_token:
+    # 3. If still not found, try .env files
+    if not api_key:
         try:
             from dotenv import load_dotenv
             # Try development first, then production
             if not load_dotenv("env/development.env"):
                 load_dotenv("env/production.env")
-            api_token = os.getenv("OPENAI_API_TOKEN")
+            api_key = os.getenv("OPENAI_API_TOKEN") or os.getenv("OPENAI_API_KEY")
         except ImportError:
             pass
+
+#Initialize chatbot
+@st.cache_resource
+def get_plant_bot():
+    api_key = get_api_key()
+    
+    if api_key:
+        try:
+            # Pass the token as api_key to PlantChatbot
+            return PlantChatbot(api_key=api_key)
+        except Exception as e:
+            st.error(f"Failed to initialize chatbot: {str(e)}")
+            return None
+    else:
+        st.warning("OpenAI API key is missing. Chatbot features disabled.")
+        return None
 
 plant_bot = get_plant_bot()
 
