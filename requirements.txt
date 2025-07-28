@@ -63,11 +63,10 @@ orjson==3.10.18
 packaging==24.2
 pandas==2.3.0
 pillow==11.2.1
--e git+https://github.com/martinaroi/Sip_Sip_Cactus.git@baf857839cb09b8e1c4d0d3ca67ffccc2fe8884a#egg=plant_health_tracker
+-e .
 plotly==6.1.2
 propcache==0.3.1
 protobuf==6.31.1
-psycopg2==2.9.10
 psycopg2-binary==2.9.10
 pyarrow==20.0.0
 pycares==4.8.0
