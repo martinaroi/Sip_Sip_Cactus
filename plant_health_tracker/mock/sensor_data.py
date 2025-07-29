@@ -6,8 +6,8 @@ from ..models.sensor_data import SensorData
 # Adding sensor data mocks to match SensorData model
 SENSOR_DATA_MOCK_A = SensorData(
     id=1,
-    moisture=10.5,
-    temperature=50.3,
+    moisture=78.3,
+    temperature=27.3,
     plant_id=1,
     created_at=datetime.now(TIMEZONE)
 )
@@ -64,11 +64,11 @@ class MockSensorDataDB():
             
             # Generate realistic but slightly random values
             if plant_id == 1:  # Venus flytrap - likes moisture
-                moisture = 15.0 + random.uniform(-15, 5)
-                temperature = 15.0 + random.uniform(-3, 3)
+                moisture = 80.0 + random.uniform(-15, 5)
+                temperature = 25.0 + random.uniform(-3, 3)
             else:  # Cactus - likes dry conditions
-                moisture = 80.0 + random.uniform(-5, 15)
-                temperature = 40.0 + random.uniform(-2, 5)
+                moisture = 10.0 + random.uniform(-5, 15)
+                temperature = 25.0 + random.uniform(-2, 5)
                 
             data.append({
                 "created_at": entry_time,
