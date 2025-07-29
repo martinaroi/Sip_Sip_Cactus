@@ -100,6 +100,23 @@ def get_plant_bot():
 
 plant_bot = get_plant_bot()
 
+st.write("--- Debug Info ---")
+if hasattr(st.secrets, "openai"):
+    st.success("Found [openai] section in secrets!")
+    st.write("Keys found in [openai]:", st.secrets.openai.keys())
+    if "api_token" in st.secrets.openai:
+        st.success("Found 'api_token' in secrets!")
+        # Optional: Display a portion of the key to confirm it's being read
+        # Be careful not to expose the whole key
+        key_preview = st.secrets.openai.api_token[:4] + "..." + st.secrets.openai.api_token[-4:]
+        st.write("API Token preview:", key_preview)
+    else:
+        st.error("'api_token' NOT FOUND in the [openai] section.")
+else:
+    st.error("[openai] section NOT FOUND in secrets.")
+    st.write("All available secrets keys:", st.secrets.keys())
+st.write("--- End Debug Info ---")
+
 # ---Plant Quote of the day ---
 # #Display quote
 if plant_bot is not None:
