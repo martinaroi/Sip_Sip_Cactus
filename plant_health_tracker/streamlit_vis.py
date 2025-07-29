@@ -81,6 +81,7 @@ def get_api_key():
             api_key = os.getenv("OPENAI_API_TOKEN") or os.getenv("OPENAI_API_KEY")
         except ImportError:
             pass
+    return api_key
 
 #Initialize chatbot
 @st.cache_resource
