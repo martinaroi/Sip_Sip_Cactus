@@ -1,10 +1,12 @@
 import time
+from datetime import datetime
 from adafruit_seesaw.seesaw import Seesaw
 import board
 import busio
 
 from plant_health_tracker.models.sensor_data import SensorDataDB
 from plant_health_tracker.db import DatabaseConnection
+from plant_health_tracker.config.base import TIMEZONE
 
 # Create I2C bus and sensor
 i2c_bus = busio.I2C(board.D3, board.D2)
@@ -20,23 +22,18 @@ def convert_to_percentage(raw_value):
     percentage = ((constrained - DRY_VALUE) / (WET_VALUE - DRY_VALUE)) * 100
     return round(percentage, 1)
 
-def read_and_save_sensor_data(plant_id: int):
+def read_and_save_sensor_data(session, plant_id: int):
     try:
         # Read raw moisture value
         raw_moisture = ss.moisture_read()
         temperature = ss.get_temp()
         moisture_percentage = convert_to_percentage(raw_moisture)
-
-        # Print for confirmation
-        print(f"Moisture: {moisture_percentage}%, Temperature: {temperature}°C")
-
-        # Save to database
-        db = DatabaseConnection()
-        session = db.get_session()
+        timestamp = datetime.now(TIMEZONE)
 
         new_reading = SensorDataDB(
             moisture=moisture_percentage,
             temperature=temperature,
+            created_at = timestamp,
             plant_id=plant_id 
         )
 
@@ -46,9 +43,16 @@ def read_and_save_sensor_data(plant_id: int):
 
     except Exception as e:
         print(f"Error reading or saving sensor data: {e}")
-    finally:
-        session.close()
+        session.rollback()
 
 if __name__ == "__main__":
     plant_id = 1
-    read_and_save_sensor_data(plant_id)
+    db = DatabaseConnection()
+    session = db.get_session()
+
+    try: 
+        while True:
+            read_and_save_sensor_data(session, plant_id)
+            time.sleep(60) # Read every 60 sec
+    finally: 
+        session.close()
