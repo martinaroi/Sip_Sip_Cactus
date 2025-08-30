@@ -2,7 +2,6 @@ from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import desc
 from datetime import datetime, timedelta, timezone
-import pandas as pd
 import pytz
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -78,6 +77,7 @@ class SensorDataDB(Base):
         Returns:
             DataFrame containing historical sensor readings with date, moisture, and temperature
         """
+        import pandas as pd
         if USE_MOCKS:
             logger.info(f"Using mock sensor data for plant {plant_id}")
             # For development purposes, return a mock reading
