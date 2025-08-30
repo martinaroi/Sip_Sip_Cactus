@@ -68,7 +68,7 @@ class SensorDataDB(Base):
             print(f"Error retrieving latest reading for plant {plant_id}: {e}")
 
     @classmethod
-    def get_historical_readings(cls, plant_id: int, last_n_days: int = 7) -> pd.DataFrame:
+    def get_historical_readings(cls, plant_id: int, last_n_days: int = 7):
         """Retrieves historical sensor readings for a given plant over the last n days.
         Args:
             db_session: SQLAlchemy session object
