@@ -10,7 +10,7 @@ import logging
 from plant_health_tracker.config.base import TIMEZONE, DEVELOPMENT_MODE, USE_MOCKS
 from plant_health_tracker.models.base import Base
 
-USE_MOCKS = False # TODO: Remove this line when not using mocks
+# USE_MOCKS = False # TODO: Remove this line when not using mocks
 
 logger = logging.getLogger(__name__)
 
