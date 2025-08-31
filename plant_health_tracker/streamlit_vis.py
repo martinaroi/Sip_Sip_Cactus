@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+from typing import Any
 if st.secrets and 'database' in st.secrets:
     os.environ["DB_HOST"] = st.secrets["database"]["DB_HOST"]
     os.environ["DB_PORT"] = str(st.secrets["database"]["DB_PORT"])
@@ -85,6 +86,28 @@ def get_historical_readings(_db: DatabaseConnection, plant_id: int, last_n_days:
         st.info("Using mock historical data (DB not available).")
         return MockSensorDataDB.get_historical_readings(plant_id=plant_id, last_n_days=last_n_days)
 
+@st.cache_data(ttl=55)  # Cache short-term recent readings (~per-minute updates)
+def get_recent_readings(_db: DatabaseConnection, plant_id: int, minutes: int = 10) -> pd.DataFrame | None:
+    """Fetch recent sensor readings within the last N minutes.
+    Returns a DataFrame with created_at and moisture or None on failure.
+    """
+    try:
+        with _db.get_session() as session:
+            start_ts = datetime.utcnow() - timedelta(minutes=minutes)
+            query = session.query(
+                SensorDataDB.created_at,
+                SensorDataDB.moisture
+            ).filter(
+                SensorDataDB.plant_id == plant_id,
+                SensorDataDB.created_at >= start_ts
+            ).order_by(SensorDataDB.created_at.asc()).statement
+            with session.connection() as conn:
+                df = pd.read_sql(query, conn)
+            return df
+    except Exception:
+        # In mock/demo mode we don't have minute-level data
+        return None
+
 db = get_db_connection()
 all_plants = load_all_plants(db)
 
@@ -113,12 +136,12 @@ if not selected_sensor_data:
 #selected_plant, selected_sensor_data = PLANTS[selected_plant_name]
 
 # --- Helper functions ---
-def moisture_gauge_chart(plant, sensor_data):
-    evaluation = evaluate_moisture(plant, sensor_data.moisture)
+def moisture_gauge_chart(plant, moisture_value: float):
+    evaluation = evaluate_moisture(plant, moisture_value)
     
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
-        value=sensor_data.moisture,
+        value=moisture_value,
         title={"text": f"{plant.name} Moisture"},
         gauge={
             "axis": {"range": [None, 100]},
@@ -139,6 +162,14 @@ def moisture_gauge_chart(plant, sensor_data):
     ))
     fig.update_layout(margin=dict(t=50, b=10))
     return fig
+
+def _to_float(val: Any, default: float = 0.0) -> float:
+    try:
+        if val is None:
+            return default
+        return float(val)
+    except Exception:
+        return default
 
 def get_api_key():
     """Get API key from multiple sources with priority to Streamlit secrets"""
@@ -226,15 +257,41 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Gauge chart
-st.plotly_chart(moisture_gauge_chart(selected_plant, selected_sensor_data), use_container_width=True)
+# Gauge chart with optional 10-minute rolling mean (app samples roughly per minute)
+recent_df = get_recent_readings(db, selected_plant.id, minutes=10)
+rolling_value = None
+if recent_df is not None and not recent_df.empty:
+    dfr = recent_df.copy()
+    if not pd.api.types.is_datetime64_any_dtype(dfr['created_at']):
+        dfr['created_at'] = pd.to_datetime(dfr['created_at'])
+    dfr = dfr.sort_values('created_at')
+    last_n = dfr.tail(10)  # last ~10 readings (≈10 minutes)
+    if len(last_n) >= 3:
+        try:
+            rolling_value = float(pd.to_numeric(last_n['moisture'], errors='coerce').dropna().mean())
+        except Exception:
+            rolling_value = None
+
+use_rolling = False
+if rolling_value is not None:
+    use_rolling = st.toggle("Use 10-minute rolling mean for gauge", value=True, help="Shows a smoothed moisture based on the last ~10 readings")
+
+gauge_value = _to_float(selected_sensor_data.moisture)
+if use_rolling and rolling_value is not None:
+    gauge_value = rolling_value
+
+st.plotly_chart(moisture_gauge_chart(selected_plant, gauge_value), use_container_width=True)
 
 # Metrics
 col1, col2 = st.columns(2)
 with col1:
-    st.metric("Moisture Level", f"{int(selected_sensor_data.moisture)}%")
+    st.metric("Moisture Level", f"{int(_to_float(selected_sensor_data.moisture))}%")
 with col2:
-    st.metric("Temperature", f"{int(selected_sensor_data.temperature)}°C")
+    st.metric("Temperature", f"{int(_to_float(selected_sensor_data.temperature))}°C")
+
+# Optional: show the rolling mean metric when available
+if rolling_value is not None:
+    st.caption(f"10-minute rolling mean moisture: {rolling_value:.0f}%")
 
 st.caption(f"Last updated: {selected_sensor_data.created_at.strftime('%Y-%m-%d %H:%M')}")
 
@@ -277,8 +334,8 @@ if not history_df.empty:
     history_df['date'] = history_df['created_at'].dt.date
     
     # Find minimum moisture per day
-    daily_min = history_df.groupby('date')['moisture'].min().reset_index()
-    daily_min['date'] = pd.to_datetime(daily_min['date'])
+    daily_mean = history_df.groupby('date')['moisture'].mean().reset_index()
+    daily_mean['date'] = pd.to_datetime(daily_mean['date'])
     
     #create figure
     fig = go.Figure()
@@ -309,8 +366,8 @@ if not history_df.empty:
 
     # Add daily minimum line
     fig.add_trace(go.Scatter(
-        x=daily_min['date'],
-        y=daily_min['moisture'],
+        x=daily_mean['date'],
+        y=daily_mean['moisture'],
         mode='lines+markers',
         marker=dict(size=8, color='#123b5a'),
         line=dict(width=2, color='#123b5a'),
@@ -319,8 +376,8 @@ if not history_df.empty:
     
     # Add threshold line
     fig.add_shape(type="line",
-                  x0=daily_min['date'].min(), y0=threshold,
-                  x1=daily_min['date'].max(), y1=threshold,
+                  x0=daily_mean['date'].mean(), y0=threshold,
+                  x1=daily_mean['date'].mean(), y1=threshold,
                   line=dict(color="darkgreen", width=1.5, dash="dash"),
                   name=f'Threshold ({threshold}%)')
     
