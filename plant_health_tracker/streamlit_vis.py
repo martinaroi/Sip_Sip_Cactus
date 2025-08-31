@@ -257,27 +257,29 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Gauge chart with optional 10-minute rolling mean (app samples roughly per minute)
+# Gauge chart with optional 10-minute rolling mean 
 recent_df = get_recent_readings(db, selected_plant.id, minutes=10)
 rolling_value = None
+
 if recent_df is not None and not recent_df.empty:
     dfr = recent_df.copy()
+    
+    # --- Data Preparation ---
     if not pd.api.types.is_datetime64_any_dtype(dfr['created_at']):
         dfr['created_at'] = pd.to_datetime(dfr['created_at'])
-    dfr = dfr.sort_values('created_at')
-    last_n = dfr.tail(10)  # last ~10 readings (≈10 minutes)
-    if len(last_n) >= 3:
-        try:
-            rolling_value = float(pd.to_numeric(last_n['moisture'], errors='coerce').dropna().mean())
-        except Exception:
-            rolling_value = None
+    dfr = dfr.sort_values('created_at', ascending=True)
+    dfr['moisture_numeric'] = pd.to_numeric(dfr['moisture'], errors='coerce')
 
-use_rolling = False
-if rolling_value is not None:
-    use_rolling = st.toggle("Use 10-minute rolling mean for gauge", value=True, help="Shows a smoothed moisture based on the last ~10 readings")
+    # --- Rolling Mean Calculation ---
+    if len(dfr) >= 3:
+        # Calculate the rolling mean with a window of 10 points
+        dfr['moisture_rolling'] = dfr['moisture_numeric'].rolling(window=10, min_periods=1).mean()
+        rolling_value = dfr['moisture_rolling'].iloc[-1]
 
-gauge_value = _to_float(selected_sensor_data.moisture)
-if use_rolling and rolling_value is not None:
+# --- Determine the Gauge Value ---
+gauge_value = _to_float(selected_sensor_data.moisture) 
+
+if rolling_value is not None and not pd.isna(rolling_value):
     gauge_value = rolling_value
 
 st.plotly_chart(moisture_gauge_chart(selected_plant, gauge_value), use_container_width=True)
@@ -371,7 +373,7 @@ if not history_df.empty:
         mode='lines+markers',
         marker=dict(size=8, color='#123b5a'),
         line=dict(width=2, color='#123b5a'),
-        name='Daily Minimum Moisture'
+        name='Daily Average Moisture'
     ))
     
     # Add threshold line
@@ -383,7 +385,7 @@ if not history_df.empty:
     
     # Customize layout
     fig.update_layout(
-        title=f"{selected_plant.name} Daily Minimum Moisture",
+        title=f"{selected_plant.name} Daily Average Moisture",
         xaxis_title="Date",
         yaxis_title="Moisture Level (%)",
         yaxis_range=[0, 100],
