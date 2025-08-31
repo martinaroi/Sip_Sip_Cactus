@@ -3,6 +3,12 @@ import os
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+if st.secrets and 'database' in st.secrets:
+    os.environ["DB_HOST"] = st.secrets["database"]["DB_HOST"]
+    os.environ["DB_PORT"] = str(st.secrets["database"]["DB_PORT"])
+    os.environ["DB_NAME"] = st.secrets["database"]["DB_NAME"]
+    os.environ["DB_USER"] = st.secrets["database"]["DB_USER"]
+    os.environ["DB_PASSWORD"] = st.secrets["database"]["DB_PASSWORD"]
 
 from plant_health_tracker.mock.plant_data import PLANT_MOCK_A, PLANT_MOCK_B
 from plant_health_tracker.mock.sensor_data import SENSOR_DATA_MOCK_A, SENSOR_DATA_MOCK_B, MockSensorDataDB
@@ -208,9 +214,9 @@ st.plotly_chart(moisture_gauge_chart(selected_plant, selected_sensor_data), use_
 # Metrics
 col1, col2 = st.columns(2)
 with col1:
-    st.metric("Moisture Level", f"{selected_sensor_data.moisture}%")
+    st.metric("Moisture Level", f"{int(selected_sensor_data.moisture)}%")
 with col2:
-    st.metric("Temperature", f"{selected_sensor_data.temperature}°C")
+    st.metric("Temperature", f"{int(selected_sensor_data.temperature)}°C")
 
 st.caption(f"Last updated: {selected_sensor_data.created_at.strftime('%Y-%m-%d %H:%M')}")
 
