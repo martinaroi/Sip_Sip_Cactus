@@ -28,38 +28,56 @@ def get_db_connection():
 
 @st.cache_data(ttl=600) # Cache plant list for 10 minutes
 def load_all_plants(_db: DatabaseConnection) -> list[Plant]:
-    """Fetches all plants from the database and returns Pydantic models."""
-    with _db.get_session() as session:
-        plant_rows = session.query(PlantDB).all()
-        return [Plant.model_validate(p) for p in plant_rows]
+    """Fetches all plants from the database and returns Pydantic models.
+    Falls back to mock plants if DB is not reachable.
+    """
+    try:
+        with _db.get_session() as session:
+            plant_rows = session.query(PlantDB).all()
+            return [Plant.model_validate(p) for p in plant_rows]
+    except Exception as e:
+        # Fallback to mocks so the app still renders
+        from plant_health_tracker.mock.plant_data import PLANT_MOCK_A, PLANT_MOCK_B
+        st.warning("Database not available; showing mock plants.")
+        return [PLANT_MOCK_A, PLANT_MOCK_B]
 
 @st.cache_data(ttl=55) # Cache latest reading for 55 seconds (just under sensor interval)
-def get_latest_sensor_reading(_db: DatabaseConnection, plant_id: int) -> SensorDataDB:
-    """Fetches the most recent sensor reading for a specific plant."""
-    with _db.get_session() as session:
-        latest_reading = session.query(SensorDataDB)\
-            .filter_by(plant_id=plant_id)\
-            .order_by(SensorDataDB.created_at.desc())\
-            .first()
-        return latest_reading
+def get_latest_sensor_reading(_db: DatabaseConnection, plant_id: int):
+    """Fetches the most recent sensor reading for a specific plant. Falls back to mock."""
+    try:
+        with _db.get_session() as session:
+            latest_reading = session.query(SensorDataDB)\
+                .filter_by(plant_id=plant_id)\
+                .order_by(SensorDataDB.created_at.desc())\
+                .first()
+            return latest_reading
+    except Exception:
+        st.info("Using mock sensor reading (DB not available).")
+        return MockSensorDataDB.get_latest_reading(plant_id)
 
 @st.cache_data(ttl=600) # Cache historical data for 10 minutes
 def get_historical_readings(_db: DatabaseConnection, plant_id: int, last_n_days: int = 30) -> pd.DataFrame:
-    """Fetches historical sensor readings and returns them as a DataFrame."""
-    with _db.get_session() as session:
-        start_date = datetime.utcnow() - timedelta(days=last_n_days)
-        query = session.query(
-            SensorDataDB.created_at,
-            SensorDataDB.moisture
-        ).filter(
-            SensorDataDB.plant_id == plant_id,
-            SensorDataDB.created_at >= start_date
-        ).statement
+    """Fetches historical sensor readings and returns them as a DataFrame.
+    Falls back to mock data if DB is not reachable.
+    """
+    try:
+        with _db.get_session() as session:
+            start_date = datetime.utcnow() - timedelta(days=last_n_days)
+            query = session.query(
+                SensorDataDB.created_at,
+                SensorDataDB.moisture
+            ).filter(
+                SensorDataDB.plant_id == plant_id,
+                SensorDataDB.created_at >= start_date
+            ).statement
 
-        # Use session.connection() to ensure a valid connection object
-        with session.connection() as conn:
-            df = pd.read_sql(query, conn)
-        return df
+            # Use session.connection() to ensure a valid connection object
+            with session.connection() as conn:
+                df = pd.read_sql(query, conn)
+            return df
+    except Exception:
+        st.info("Using mock historical data (DB not available).")
+        return MockSensorDataDB.get_historical_readings(plant_id=plant_id, last_n_days=last_n_days)
 
 db = get_db_connection()
 all_plants = load_all_plants(db)
