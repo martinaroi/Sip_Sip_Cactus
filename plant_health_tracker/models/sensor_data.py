@@ -119,4 +119,83 @@ class SensorDataDB(Base):
             print(f"Error retrieving historical readings: {e}")
             return pd.DataFrame(columns=['created_at', 'moisture', 'temperature'])
 
+    @classmethod
+    def get_last_n_readings(cls, plant_id: int, n: int = 10):
+        """Retrieves the last n sensor readings for a given plant as DataFrame.
+        
+        Args:
+            plant_id (int): ID of the plant to retrieve readings for.
+            n (int, optional): Number of recent readings to retrieve.
+                Defaults to 10.
+            
+        Returns:
+            pd.DataFrame: DataFrame containing the last n sensor readings
+                with columns:
+                - id: Reading ID
+                - moisture: Moisture level
+                - temperature: Temperature reading
+                - plant_id: Plant ID
+                - created_at: Timestamp when reading was taken
+                
+        Raises:
+            Exception: If there's an error retrieving data from the database.
+        """
+        import pandas as pd
+        
+        if USE_MOCKS:
+            logger.info(f"Using mock sensor data for plant {plant_id}")
+            from plant_health_tracker.mock.sensor_data import MockSensorDataDB
+            # Return mock data as DataFrame for consistency
+            mock_data = MockSensorDataDB.get_latest_reading(plant_id)
+            if mock_data:
+                data = [{
+                    'id': 1,
+                    'moisture': mock_data.moisture,
+                    'temperature': mock_data.temperature,
+                    'plant_id': mock_data.plant_id,
+                    'created_at': mock_data.created_at
+                }]
+                return pd.DataFrame(data)
+            return pd.DataFrame(columns=[
+                'id', 'moisture', 'temperature', 'plant_id', 'created_at'
+            ])
+        
+        # try:
+        from plant_health_tracker.db import DatabaseConnection
+        db_session = DatabaseConnection().get_session()
+        
+        readings = db_session.query(cls)\
+            .filter(cls.plant_id == plant_id)\
+            .order_by(desc(cls.created_at))\
+            .limit(n)\
+            .all()
+
+        if not readings:
+            return pd.DataFrame(columns=[
+                'id', 'moisture', 'temperature', 'plant_id', 'created_at'
+            ])
+            
+        # Convert to DataFrame
+        data = [{
+            'id': reading.id,
+            'moisture': reading.moisture,
+            'temperature': reading.temperature,
+            'plant_id': reading.plant_id,
+            'created_at': reading.created_at
+        } for reading in readings]
+        
+        df = pd.DataFrame(data)
+        # Sort by created_at in ascending order (oldest first)
+        df = df.sort_values('created_at').reset_index(drop=True)
+        
+        return df
+            
+        # except Exception as e:
+        #     logger.error(
+        #         f"Error retrieving last {n} readings for plant {plant_id}: {e}"
+        #     )
+        #     return pd.DataFrame(columns=[
+        #         'id', 'moisture', 'temperature', 'plant_id', 'created_at'
+        #     ])
+
 
