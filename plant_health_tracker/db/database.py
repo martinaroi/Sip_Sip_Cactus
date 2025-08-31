@@ -33,9 +33,29 @@ class DatabaseConnection:
 
     def _initialize_connection(self):
         """Initialize the database connection and session factory."""
-        # Construct database URL
-        db_url = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode=require"
-        
+        # Prefer full connection string from env if provided
+        db_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_CONNECTION_STRING")
+
+        if db_url:
+            # Normalize scheme for SQLAlchemy + psycopg2
+            if db_url.startswith("postgres://"):
+                db_url = "postgresql+psycopg2://" + db_url[len("postgres://"):]
+            elif db_url.startswith("postgresql://") and "+psycopg2" not in db_url:
+                db_url = "postgresql+psycopg2://" + db_url[len("postgresql://"):]
+        else:
+            # Fallback to composing from discrete env vars, with safe defaults
+            host = DB_HOST or "localhost"
+            name = DB_NAME or "postgres"
+            user = DB_USER or "postgres"
+            password = DB_PASSWORD or ""
+            port = DB_PORT or "5432"
+            sslmode = os.getenv("DB_SSLMODE", "require")
+
+            # Build URL, add sslmode if defined
+            db_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{name}"
+            if sslmode:
+                db_url += f"?sslmode={sslmode}"
+
         # Create engine
         self._engine = create_engine(
             db_url,
@@ -57,6 +77,8 @@ class DatabaseConnection:
         Returns:
             Engine: SQLAlchemy engine instance
         """
+        if self._engine is None:
+            raise RuntimeError("Database engine not initialized")
         return self._engine
 
     def get_session(self) -> Session:
