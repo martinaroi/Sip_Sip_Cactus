@@ -3,12 +3,15 @@ import os
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
-if st.secrets and 'database' in st.secrets:
-    os.environ["DB_HOST"] = st.secrets["database"]["DB_HOST"]
-    os.environ["DB_PORT"] = str(st.secrets["database"]["DB_PORT"])
-    os.environ["DB_NAME"] = st.secrets["database"]["DB_NAME"]
-    os.environ["DB_USER"] = st.secrets["database"]["DB_USER"]
-    os.environ["DB_PASSWORD"] = st.secrets["database"]["DB_PASSWORD"]
+try:
+    if st.secrets and 'database' in st.secrets:
+        os.environ["DB_HOST"] = st.secrets["database"]["DB_HOST"]
+        os.environ["DB_PORT"] = str(st.secrets["database"]["DB_PORT"])
+        os.environ["DB_NAME"] = st.secrets["database"]["DB_NAME"]
+        os.environ["DB_USER"] = st.secrets["database"]["DB_USER"]
+        os.environ["DB_PASSWORD"] = st.secrets["database"]["DB_PASSWORD"]
+except Exception as e:
+    print(f"Error loading database secrets from secrets.toml: {e}")
 
 from plant_health_tracker.mock.plant_data import PLANT_MOCK_A, PLANT_MOCK_B
 from plant_health_tracker.mock.sensor_data import SENSOR_DATA_MOCK_A, SENSOR_DATA_MOCK_B, MockSensorDataDB
