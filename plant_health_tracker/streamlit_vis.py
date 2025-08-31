@@ -42,12 +42,14 @@ def load_all_plants(_db: DatabaseConnection) -> list[Plant]:
 @st.cache_data(ttl=55) # Cache latest reading for 55 seconds (just under sensor interval)
 def get_latest_sensor_reading(_db: DatabaseConnection, plant_id: int) -> SensorDataDB:
     """Fetches the most recent sensor reading for a specific plant."""
-    with _db.get_session() as session:
-        latest_reading = session.query(SensorDataDB)\
-            .filter_by(plant_id=plant_id)\
-            .order_by(SensorDataDB.created_at.desc())\
-            .first()
-        return latest_reading
+    average_over_n_minutes = 15
+    sensor_data = SensorDataDB.get_last_n_readings(plant_id=plant_id, n=average_over_n_minutes)
+    sensor_data['smoothed_temperature'] = sensor_data['temperature'].ewm(alpha=0.1, adjust=False).mean()
+    sensor_data['smoothed_moisture'] = sensor_data['moisture'].ewm(alpha=0.1, adjust=False).mean()
+    moisture_last = sensor_data['smoothed_moisture'].iloc[-1].item()
+    temperature_last = sensor_data['smoothed_temperature'].iloc[-1].item()
+    from plant_health_tracker.models import SensorData
+    return SensorData(moisture=moisture_last, temperature=temperature_last, plant_id=plant_id, id=0)
 
 @st.cache_data(ttl=600) # Cache historical data for 10 minutes
 def get_historical_readings(_db: DatabaseConnection, plant_id: int, last_n_days: int = 30) -> pd.DataFrame:
