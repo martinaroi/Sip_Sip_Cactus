@@ -15,7 +15,7 @@ ss = Seesaw(i2c_bus, addr=0x36)
  
 # Calibration values (adjust to your soil & sensor)
 DRY_VALUE = 330
-WET_VALUE = 980
+WET_VALUE = 940
 
 def convert_to_percentage(raw_value):
     """Convert raw moisture reading to percentage (0-100%)"""
