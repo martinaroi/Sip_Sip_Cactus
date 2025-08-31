@@ -8,25 +8,85 @@ from plant_health_tracker.mock.plant_data import PLANT_MOCK_A, PLANT_MOCK_B
 from plant_health_tracker.mock.sensor_data import SENSOR_DATA_MOCK_A, SENSOR_DATA_MOCK_B, MockSensorDataDB
 from plant_health_tracker.utils.moisture_evaluation import evaluate_moisture
 from plant_health_tracker.plant_ai_bot import PlantChatbot
+from plant_health_tracker.db.database import DatabaseConnection
+from plant_health_tracker.models.plant import Plant, PlantDB
+from plant_health_tracker.models.sensor_data import SensorDataDB
 
 st.set_page_config(page_title="Plant Health Dashboard", layout="centered")
 st.title("🌵 Plant Health Dashboard 🌱")
 
-# Create a dictionary of available plants
-PLANTS = {
-    PLANT_MOCK_A.name: (PLANT_MOCK_A, SENSOR_DATA_MOCK_A),
-    PLANT_MOCK_B.name: (PLANT_MOCK_B, SENSOR_DATA_MOCK_B)
-}
+# # MOCK: Create a dictionary of available plants
+# PLANTS = {
+#     PLANT_MOCK_A.name: (PLANT_MOCK_A, SENSOR_DATA_MOCK_A),
+#     PLANT_MOCK_B.name: (PLANT_MOCK_B, SENSOR_DATA_MOCK_B)
+# }
 
-# Plant selection dropdown
-selected_plant_name = st.selectbox(
-    "Select a Plant", 
-    options=list(PLANTS.keys()),
-    index=0
-)
+@st.cache_resource
+def get_db_connection():
+    """Creates a single, cached database connection instance."""
+    return DatabaseConnection()
 
-# Get selected plant and sensor data
-selected_plant, selected_sensor_data = PLANTS[selected_plant_name]
+@st.cache_data(ttl=600) # Cache plant list for 10 minutes
+def load_all_plants(_db: DatabaseConnection) -> list[Plant]:
+    """Fetches all plants from the database and returns Pydantic models."""
+    with _db.get_session() as session:
+        plant_rows = session.query(PlantDB).all()
+        return [Plant.model_validate(p) for p in plant_rows]
+
+@st.cache_data(ttl=55) # Cache latest reading for 55 seconds (just under sensor interval)
+def get_latest_sensor_reading(_db: DatabaseConnection, plant_id: int) -> SensorDataDB:
+    """Fetches the most recent sensor reading for a specific plant."""
+    with _db.get_session() as session:
+        latest_reading = session.query(SensorDataDB)\
+            .filter_by(plant_id=plant_id)\
+            .order_by(SensorDataDB.created_at.desc())\
+            .first()
+        return latest_reading
+
+@st.cache_data(ttl=600) # Cache historical data for 10 minutes
+def get_historical_readings(_db: DatabaseConnection, plant_id: int, last_n_days: int = 30) -> pd.DataFrame:
+    """Fetches historical sensor readings and returns them as a DataFrame."""
+    with _db.get_session() as session:
+        start_date = datetime.utcnow() - timedelta(days=last_n_days)
+        query = session.query(
+            SensorDataDB.created_at,
+            SensorDataDB.moisture
+        ).filter(
+            SensorDataDB.plant_id == plant_id,
+            SensorDataDB.created_at >= start_date
+        ).statement
+
+        # Use session.connection() to ensure a valid connection object
+        with session.connection() as conn:
+            df = pd.read_sql(query, conn)
+        return df
+
+db = get_db_connection()
+all_plants = load_all_plants(db)
+
+if not all_plants:
+    st.error("No plants found in the database. Please add plants and ensure the sensor script is running.")
+    st.stop()
+
+PLANTS_MAP = {plant.name: plant for plant in all_plants}
+
+selected_plant_name = st.selectbox("Select a Plant", options=list(PLANTS_MAP.keys()))
+selected_plant = PLANTS_MAP[selected_plant_name]
+selected_sensor_data = get_latest_sensor_reading(db, selected_plant.id)
+
+if not selected_sensor_data:
+    st.warning(f"No sensor data found for {selected_plant.name}. Displaying default values.")
+    selected_sensor_data = SensorDataDB(moisture=0, temperature=0, created_at=datetime.utcnow())
+
+# # MOCK: Plant selection dropdown
+# selected_plant_name = st.selectbox(
+#     "Select a Plant", 
+#     options=list(PLANTS.keys()),
+#     index=0
+#)
+
+## MOCK: Get selected plant and sensor data
+#selected_plant, selected_sensor_data = PLANTS[selected_plant_name]
 
 # --- Helper functions ---
 def moisture_gauge_chart(plant, sensor_data):
