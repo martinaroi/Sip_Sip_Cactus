@@ -22,6 +22,7 @@ A comprehensive Python project for monitoring plant health using IoT sensors on 
   - [Usage](#usage)
     - [Telegram Bot](#telegram-bot)
     - [Streamlit Dashboard](#streamlit-dashboard)
+    - [Raspberry Pi Sensor Integration](#raspberry-pi-sensor-integration)
 
 
 ## Architecture
@@ -113,3 +114,48 @@ Start the dashboard:
 poetry run streamlit run dashboard/app.py
 ```
 Open `http://localhost:8501` in your browser.
+
+### Raspberry Pi Sensor Integration
+
+Ensure your Raspberry Pi is set up with the necessary sensors and libraries. Use the provided scripts to read sensor data and send it to the PostgreSQL database.
+
+```bash
+[Unit]
+Description=Sip Sip Cactus - Plant Health Tracker Service
+After=network.target
+
+[Service]
+# The command to execute the script as a Python module.
+# Replace '1' with the actual plant_id for this device.
+ExecStart=/home/admin/Sip_Sip_Cactus/minimal_env/bin/python3 -m plant_health_tracker.soil_sensor 1
+
+# The project's root directory. This is crucial for module imports to work.
+WorkingDirectory=/home/admin/Sip_Sip_Cactus
+
+# Run the service as the user who owns the project files.
+User=admin
+
+# Ensure the script restarts automatically if it fails.
+Restart=always
+RestartSec=5s
+
+# Redirect script output to the systemd journal for easy logging.
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Important:**
+- Modify the ExecStart line to use the correct plant_id for the plant this device will monitor.
+- Ensure the User, ExecStart, and WorkingDirectory paths match your system's configuration.
+
+Step 3: Enable and Start the Service
+Now, we will instruct systemd to recognize and run our new service.
+Reload the systemd daemon to make it aware of the new sip_sip_cactus.service file:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable sip_sip_cactus.service
+sudo systemctl start sip_sip_cactus.service
+```
