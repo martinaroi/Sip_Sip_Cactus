@@ -1,7 +1,7 @@
 import asyncio
 import pandas as pd
 import logging
-from plant_health_tracker.telegram_vibe import PlantTelegramBot
+from examples.telegram_vibe import PlantTelegramBot
 from plant_health_tracker.plant_ai_bot import PlantChatbot
 from plant_health_tracker.mock.plant_data import PLANT_MOCK_A, PLANT_MOCK_B
 from plant_health_tracker.mock.sensor_data import get_sensor_data_as_dataframe

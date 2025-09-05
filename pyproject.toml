@@ -4,22 +4,38 @@ version = "0.1.0"
 description = ""
 authors = ["martina.roithmeier <maroithmeier@gmail.com>", "vitezslav.slavik <vitezslavik@gmail.com>"]
 readme = "README.md"
+packages = [{ include = "plant_health_tracker" }]
 
 [tool.poetry.dependencies]
 python = ">=3.12,<4.0"
 pandas = "^2.2.3"
 sqlalchemy = "^2.0.40"
 flask = "^3.1.0"
-openai = "^1.76.0"
+openai = "^1.97.1"
 aiohttp = {extras = ["speedups"], version = "^3.11.18"}
 python-dotenv = "^1.1.0"
 langchain = "^0.3.25"
-langchain-openai = "^0.3.16"
+langchain-openai = "^0.3.28"
 python-telegram-bot = "^22.0"
-psycopg2 = "^2.9.10"
 psycopg2-binary = "^2.9.10"
 nest-asyncio = "^1.6.0"
+streamlit = "^1.45.1"
+plotly = "^6.1.2"
+numpy = "^2.2.6"
+adafruit-seesaw = "^1.0"
+adafruit-circuitpython-seesaw = "^1.16.6"
+adafruit-blinka = "^8.62.0"
+langchain-core = "^0.3.72"
 
+
+[tool.poetry.group.berry]
+optional = true
+
+
+[tool.poetry.group.berry.dependencies]
+adafruit-circuitpython-seesaw = "^1.16.6"
+rpi-gpio = "^0.7.1"
+adafruit-blinka = "^8.58.1"
 
 [build-system]
 requires = ["poetry-core"]
