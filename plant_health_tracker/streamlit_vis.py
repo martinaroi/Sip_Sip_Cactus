@@ -64,7 +64,6 @@ def get_latest_sensor_reading(_db: DatabaseConnection, plant_id: int) -> SensorD
         from plant_health_tracker.models import SensorData
         return SensorData(moisture=moisture_last, temperature=temperature_last, plant_id=plant_id, id=0)
     except Exception:
-        except Exception:
         st.info("Using mock sensor reading (DB not available).")
         return MockSensorDataDB.get_latest_reading(plant_id)
 
